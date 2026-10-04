@@ -6,7 +6,7 @@ const cors=require("cors");
 const helmet=require("helmet");
 const morgan=require("morgan");
 const database=require("./config/db");
-const {User} = require("./models/User");
+const userRoutes=require("./routes/userRoutes");
 
 const PORT=process.env.PORT;
 
@@ -15,25 +15,14 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 
+app.use("/api",userRoutes);
+
 app.get("/",(req,res)=>{
 
     res.send("Welcome to Root page!");
 });
 
 
-app.post("/test",async(req,res)=>{
-   const {name,email,password}= req.body;
-   const newUser= new User({
-    name:name,
-    email:email,
-    password:password
-   });
-  await  newUser.save();
-   res.status(201).json({
-    success:true,
-    message:"User added successfully..."
-   });
-});
 
 const executeServer=async()=>{
    try{
