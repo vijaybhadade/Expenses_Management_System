@@ -6,5 +6,8 @@ const {authenticateUser}=require("../middileware/authMeddileware");
 //create Expense 
 routes.post("/expenses",authenticateUser,createExpenses);
 
+//Get Expense
+routes.get("/expreses",authenticateUser);
+
 
 module.exports=routes;

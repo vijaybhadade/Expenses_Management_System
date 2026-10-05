@@ -1,4 +1,6 @@
 const {ExpenseModel}=require("../models/Expense");
+
+//CreateExpenses
 const createExpenseService=async({amount,category,description,userId})=>{
     if(!amount || !category ){
      const error= new Error("Missing required expense fields: amount, category.");
@@ -19,6 +21,14 @@ const createExpenseService=async({amount,category,description,userId})=>{
         throw error;
     }
    
+}
+
+//Get All Expenses
+const getAllExpenses=async()=>{
+
+    const fetch=await User.find();
+
+    
 }
 
 module.exports= {createExpenseService};
