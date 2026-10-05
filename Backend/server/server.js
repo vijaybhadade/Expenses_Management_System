@@ -7,6 +7,7 @@ const helmet=require("helmet");
 const morgan=require("morgan");
 const database=require("./config/db");
 const userRoutes=require("./routes/userRoutes");
+const expenseRoutes=require("./routes/expenseRoutes");
 
 const PORT=process.env.PORT;
 
@@ -16,6 +17,7 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 app.use("/api",userRoutes);
+app.use("/api",expenseRoutes);
 
 app.get("/",(req,res)=>{
 

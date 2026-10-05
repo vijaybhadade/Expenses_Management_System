@@ -1,0 +1,10 @@
+const express=require("express");
+const routes=express.Router();
+const {createExpenses}=require("../controllers/expenseController");
+const {authenticateUser}=require("../middileware/authMeddileware");
+
+//create Expense 
+routes.post("/expenses",authenticateUser,createExpenses);
+
+
+module.exports=routes;
