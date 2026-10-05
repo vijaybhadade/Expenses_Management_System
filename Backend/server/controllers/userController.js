@@ -15,7 +15,8 @@ const registerUser = async (req, res) => {
             message: "New user Register succussfully..",
             User:{
                 name:name,
-                email:email
+                email:email,
+                
             }
         });
     } catch (error) {
@@ -34,10 +35,11 @@ const registerUser = async (req, res) => {
 const loginUser=async(req,res)=>{
     const{email,password}=req.body;
     try{
-    await loginUserService({email,password});
+   const token= await loginUserService({email,password});
     res.status(200).json({
         success:true,
         message:"Login successful",
+        token:token
     })
 
     }catch(error)

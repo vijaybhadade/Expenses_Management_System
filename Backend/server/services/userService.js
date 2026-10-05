@@ -1,7 +1,7 @@
 const { User } = require("../models/User");
 const bcrypt = require("bcrypt");
 const normalization = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+const {createToken}=require("../utils/jwt");
 
 
 //Register service
@@ -35,6 +35,8 @@ const registerUserService = async ({ name, email, password }) => {
 
   //hash password
   const hashPassoword = await bcrypt.hash(password, 12);
+  
+
 
   //create new user
 
@@ -79,7 +81,9 @@ const loginUserService=async({email,password})=>{
     error.statusCode=401;
     throw error;
   }
-  return   result;
+  const token=await createToken({userId:user._id});
+
+  return  token ;
 }
 
 module.exports = { registerUserService,loginUserService };
