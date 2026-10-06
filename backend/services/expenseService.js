@@ -2,8 +2,9 @@ const {ExpenseModel}=require("../models/Expense");
 
 //CreateExpenses
 const createExpenseService=async({amount,category,description,userId})=>{
-    if(!amount || !category ){
-     const error= new Error("Missing required expense fields: amount, category.");
+    const num=Number(amount); //number validation
+    if(Number.isNaN(num)||  num <=0 || !category ||category.trim()==="" ){
+     const error= new Error("Amount must be a positive number and category must not be empty.");
      error.statusCode=400;
      throw error;
     }

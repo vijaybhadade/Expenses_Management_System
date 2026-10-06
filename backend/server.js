@@ -8,6 +8,7 @@ const morgan=require("morgan");
 const database=require("./config/db");
 const userRoutes=require("./routes/userRoutes");
 const expenseRoutes=require("./routes/expenseRoutes");
+const {errorHandle}=require("./middileware/errorHandler");
 
 const PORT=process.env.PORT;
 
@@ -15,7 +16,7 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
-
+app.use(errorHandle);
 app.use("/api",userRoutes);
 app.use("/api",expenseRoutes);
 

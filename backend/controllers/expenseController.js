@@ -6,8 +6,12 @@ const {
   getDeletedExpenseByIdService,
 } = require("../services/expenseService");
 
+//handle notFoundError
+
+const{throwError}=require("../utils/error");
+
 //CreateExpenses
-const createExpenses = async (req, res) => {
+const createExpenses = async (req, res,next) => {
   const { amount, category, description } = req.body;
   try {
     const { userId } = req.user;
@@ -24,69 +28,47 @@ const createExpenses = async (req, res) => {
       createdExpense,
     });
   } catch (error) {
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message || "Internal server error",
-    });
+    next(error)
   }
 };
 
 //Get All Expenses
-const getAllExpense = async (req, res) => {
+const getAllExpense = async (req, res,next) => {
   try {
     const { userId } = req.user;
     const getExpenses = await getAllExpenseService({ userId });
-    if (getExpenses===null) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found",
-      });
-    }
+    throwError(getExpenses);
 
     res.status(200).json({
       success: true,
-      message: "Expenses fetched successfully",
+      message: " All Expenses fetched successfully",
       getExpenses,
     });
   } catch (error) {
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message || "Expenses fetching failed",
-    });
+    next(error);
   }
 };
 
 //Get Expense By Id
-const getSingleExpense = async (req, res) => {
+const getSingleExpense = async (req, res,next) => {
   try {
     const { expenseId } = req.params;
     const { userId } = req.user;
     const expense = await getExpenseByIdService({ expenseId, userId });
-    if (expense===null) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found",
-      });
-    }
+    throwError(expense);
     res.status(200).json({
       success: true,
       message: "Get expense by id successfully",
       expense,
     });
   } catch (error) {
-    const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json({
-      success: false,
-      message: error.message || "Expenses fetching by id failed ",
-    });
+    next(error);
   }
 };
 
 //Update Expenses using id
 
-const updateSingleExpense = async (req, res) => {
+const updateSingleExpense = async (req, res,next) => {
   try {
     const { expenseId } = req.params;
     const { userId } = req.user;
@@ -96,12 +78,7 @@ const updateSingleExpense = async (req, res) => {
       userId,
       updateData: { amount, category, description },
     });
-    if (expense === null) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found!",
-      });
-    }
+    throwError(expense);
 
     res.status(200).json({
       success: true,
@@ -109,37 +86,26 @@ const updateSingleExpense = async (req, res) => {
       expense,
     });
   } catch (error) {
-    const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json({
-      success: false,
-      message: error.message || "Expenses updating by id failed ",
-    });
+    next(error);
   }
 };
 
 //Delete Expense By Id
-const deleteSingleExpense = async (req, res) => {
+const deleteSingleExpense = async (req, res,next) => {
   try {
     const { expenseId } = req.params;
     const { userId } = req.user;
     const expense = await getDeletedExpenseByIdService({ expenseId, userId });
-    if (expense === null) {
-      return res.status(404).json({
-        success: false,
-        message: "Expense not found",
-      });
-    }
+    
+    throwError(expense);
+
     res.status(200).json({
       success: true,
       message: "Delete expense by id successfully",
       expense,
     });
   } catch (error) {
-    const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json({
-      success: false,
-      message: error.message || "Expenses delete by id failed ",
-    });
+    next(error);
   }
 };
 
