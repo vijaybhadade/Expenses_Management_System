@@ -30,9 +30,31 @@ const getAllExpenseService=async({userId})=>{
 }
 
 //Get Expenses by id
-
 const getExpenseByIdService=async({expenseId,userId})=>{
     const getExpenseById=await ExpenseModel.findOne({_id:expenseId,userId});
     return getExpenseById;
 }
-module.exports= {createExpenseService,getAllExpenseService,getExpenseByIdService};
+
+//Update Expenses by id
+const getUpdatedExpenseByIdService=async({expenseId,userId,updateData})=>{
+    const{amount,category,description}=updateData;
+  const expense=await ExpenseModel.findOneAndUpdate({_id:expenseId,userId},{amount,category,description},{new: true});
+  return expense;
+}
+
+//Delete Expenses by id 
+const getDeletedExpenseByIdService=async({expenseId,userId})=>{
+    const expense=await ExpenseModel.findOneAndDelete({_id:expenseId,userId});
+    return expense;
+}
+
+
+
+module.exports= 
+{
+    createExpenseService,
+    getAllExpenseService,
+    getExpenseByIdService,
+    getUpdatedExpenseByIdService,
+     getDeletedExpenseByIdService
+};

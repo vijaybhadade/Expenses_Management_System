@@ -19,13 +19,6 @@ app.use(morgan("dev"));
 app.use("/api",userRoutes);
 app.use("/api",expenseRoutes);
 
-app.get("/",(req,res)=>{
-
-    res.send("Welcome to Root page!");
-});
-
-
-
 const executeServer=async()=>{
    try{
     await database();
