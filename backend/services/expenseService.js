@@ -24,11 +24,15 @@ const createExpenseService=async({amount,category,description,userId})=>{
 }
 
 //Get All Expenses
-const getAllExpenses=async()=>{
-
-    const fetch=await User.find();
-
-    
+const getAllExpenseService=async({userId})=>{
+  const expenses= await ExpenseModel.find({userId});
+     return expenses;   
 }
 
-module.exports= {createExpenseService};
+//Get Expenses by id
+
+const getExpenseByIdService=async({expenseId,userId})=>{
+    const getExpenseById=await ExpenseModel.findOne({_id:expenseId,userId});
+    return getExpenseById;
+}
+module.exports= {createExpenseService,getAllExpenseService,getExpenseByIdService};
