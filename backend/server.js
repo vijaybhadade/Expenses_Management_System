@@ -16,9 +16,9 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(errorHandle);
 app.use("/api",userRoutes);
 app.use("/api",expenseRoutes);
+app.use(errorHandle);
 
 const executeServer=async()=>{
    try{

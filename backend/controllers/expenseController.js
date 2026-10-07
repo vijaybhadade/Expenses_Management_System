@@ -38,10 +38,11 @@ const getAllExpense = async (req, res,next) => {
     const { userId } = req.user;
     const getExpenses = await getAllExpenseService({ userId });
     throwError(getExpenses);
-
+    const total=getExpenses.length;  
     res.status(200).json({
       success: true,
       message: " All Expenses fetched successfully",
+      total,
       getExpenses,
     });
   } catch (error) {
@@ -70,13 +71,14 @@ const getSingleExpense = async (req, res,next) => {
 
 const updateSingleExpense = async (req, res,next) => {
   try {
+    
     const { expenseId } = req.params;
     const { userId } = req.user;
-    const { amount, category, description } = req.body;
+    const { amount, category, description }=req.body;
     const expense = await getUpdatedExpenseByIdService({
       expenseId,
       userId,
-      updateData: { amount, category, description },
+      updateData:{ amount, category, description },
     });
     throwError(expense);
 
@@ -95,7 +97,7 @@ const deleteSingleExpense = async (req, res,next) => {
   try {
     const { expenseId } = req.params;
     const { userId } = req.user;
-    const expense = await getDeletedExpenseByIdService({ expenseId, userId });
+    const expense = await getDeletedExpenseByIdService({ expenseId, userId});
     
     throwError(expense);
 
