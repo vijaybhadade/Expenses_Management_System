@@ -11,7 +11,7 @@ const authenticateUser = (req, res, next) => {
   try {
     const parts = authorization.split(" ");
   const result= jwt.verify(parts[1], process.env.SECRETECODE);
-       req.user=result;//passing userId
+       req.user=result;
     next();
   } catch (error) {
     error = new Error(" token verification Failed!");
