@@ -21,6 +21,12 @@ const expenseSchema= new mongoose.Schema({
     type:Date,
     required:[true,"Please add date"],
     default:Date.now,
+ },
+ page:{
+
+ },
+ limit:{
+
  }
 });
 

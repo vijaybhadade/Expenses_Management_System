@@ -36,14 +36,47 @@ const createExpenses = async (req, res,next) => {
 const getAllExpense = async (req, res,next) => {
   try {
     const { userId } = req.user;
-    const getExpenses = await getAllExpenseService({ userId });
-    throwError(getExpenses);
-    const total=getExpenses.length;  
+    const{page=1,limit=10}=req.query;
+    
+    const numPage=Number(page);
+    const numLimit=Number(limit);
+
+    if(!Number.isInteger(numPage) || numPage < 1 )
+    {
+      return res.status(400).json({
+        success:false,
+        message:"Page must be positive and greater than 0"
+      });
+    }
+
+     if(!Number.isInteger(numLimit) || numLimit < 1 || numLimit >100  )
+    {
+      return res.status(400).json({
+        success:false,
+        message:"Limit must be positive , greater than 0  and maximum limit should be 100"
+      });
+    }
+    const {expenses,totalExpenses} = await getAllExpenseService({ userId,page:numPage,limit:numLimit });
+
+    if(expenses.length===0)
+    {
+     return res.status(404).json({
+      success:false,
+      message:"Expenses not found!"
+     });
+    }
+    const totalPage=Math.ceil(totalExpenses/numLimit);
+     
     res.status(200).json({
       success: true,
       message: " All Expenses fetched successfully",
-      total,
-      getExpenses,
+      "pagination":{
+        "total":totalExpenses.length,
+        "currentPage":numPage,
+        "limit":numLimit,
+        "totalPages":totalPage,
+      },
+      expenses,
     });
   } catch (error) {
     next(error);

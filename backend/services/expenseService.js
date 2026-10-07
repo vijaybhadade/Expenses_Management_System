@@ -33,9 +33,17 @@ const createExpenseService = async ({
 };
 
 //Get All Expenses
-const getAllExpenseService = async ({ userId }) => {
-  const expenses = await ExpenseModel.find({ userId });
-  return expenses;
+const getAllExpenseService = async ({ userId, page = 1, limit = 10 }) => {
+  
+  const skip = (page - 1) * limit;
+ 
+  const expenses = await ExpenseModel.find({ userId })
+    .skip(skip)
+    .limit(limit);
+
+  const totalExpenses=await ExpenseModel.countDocuments({userId});
+
+  return {expenses,totalExpenses};
 };
 
 //Get Expenses by id
