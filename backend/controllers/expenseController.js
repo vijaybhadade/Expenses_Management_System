@@ -56,6 +56,7 @@ const getAllExpense = async (req, res,next) => {
         message:"Limit must be positive , greater than 0  and maximum limit should be 100"
       });
     }
+    //access expenses and totalExpeses from service
     const {expenses,totalExpenses} = await getAllExpenseService({ userId,page:numPage,limit:numLimit });
 
     if(expenses.length===0)
@@ -65,8 +66,10 @@ const getAllExpense = async (req, res,next) => {
       message:"Expenses not found!"
      });
     }
+    //calculate page count using Math.ceil
     const totalPage=Math.ceil(totalExpenses/numLimit);
-     
+    
+    //Everything fine then return to client 
     res.status(200).json({
       success: true,
       message: " All Expenses fetched successfully",
