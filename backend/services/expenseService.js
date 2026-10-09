@@ -33,19 +33,31 @@ const createExpenseService = async ({
 };
 
 //Get All Expenses
-const getAllExpenseService = async ({ userId, page = 1, limit = 10 }) => {
-  
+const getAllExpenseService = async ({
+  userId,
+  page = 1,
+  limit = 10,
+  category,
+}) => {
   //calculate skip expenses
   const skip = (page - 1) * limit;
- 
-  const expenses = await ExpenseModel.find({ userId })
+  //findCategory
+  const filter = { userId };
+
+  //check database category and given category values from user
+  if (category) {
+    filter.category = category;
+  }
+
+  //find expenses using userId
+  const expenses = await ExpenseModel.find(filter)
+    .sort({ date: -1 })
     .skip(skip)
     .limit(limit);
-
   //countDocument calculate totalExpenses from user
-  const totalExpenses=await ExpenseModel.countDocuments({userId});
+  const totalExpenses = await ExpenseModel.countDocuments(filter);
 
-  return {expenses,totalExpenses};
+  return { expenses, totalExpenses };
 };
 
 //Get Expenses by id
@@ -58,14 +70,13 @@ const getExpenseByIdService = async ({ expenseId, userId }) => {
 const getUpdatedExpenseByIdService = async ({
   expenseId,
   userId,
-  updateData
+  updateData,
 }) => {
-  const { amount, category, description } =updateData;
-   const updateFields={};
-   //update only amount
+  const { amount, category, description } = updateData;
+  const updateFields = {};
+  //update only amount
   if (amount !== undefined) {
-
-    updateFields.amount =amount;
+    updateFields.amount = amount;
 
     const num = Number(amount);
     if (Number.isNaN(num) || num <= 0) {
@@ -74,44 +85,40 @@ const getUpdatedExpenseByIdService = async ({
       throw error;
     }
   }
-  //update only category 
+  //update only category
 
   if (category !== undefined) {
-
-    updateFields.category =category;
+    updateFields.category = category;
 
     if (!category || category.trim() === "") {
       const error = new Error(" category must not be empty");
       error.statusCode = 400;
       throw error;
     }
+  }
 
-  } 
-
-  //update only description 
+  //update only description
 
   if (description !== undefined) {
+    updateFields.description = description;
+  }
 
-    updateFields.description =description;
-
-
-  }  
-
-  if(amount===undefined && category===undefined && description===undefined)
-  {
-    const error= new Error("Nothing to enter values for update expense");
-    error.statusCode=400;
+  if (
+    amount === undefined &&
+    category === undefined &&
+    description === undefined
+  ) {
+    const error = new Error("Nothing to enter values for update expense");
+    error.statusCode = 400;
     throw error;
   }
 
   const expense = await ExpenseModel.findOneAndUpdate(
     { _id: expenseId, userId },
     updateFields,
-    { new: true,
-      runValidators:true
-    },
+    { new: true, runValidators: true },
   );
-  
+
   return expense;
 };
 

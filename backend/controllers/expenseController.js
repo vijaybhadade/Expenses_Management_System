@@ -37,10 +37,21 @@ const getAllExpense = async (req, res,next) => {
   try {
     const { userId } = req.user;
     const{page=1,limit=10}=req.query;
+    const{category}=req.query;
     
+      const allowedCategory=["Food", "Fashion", "Equipment",  "Electronics"]
+      //check it undefined
+      if(category!==undefined && !allowedCategory.includes(category))
+      {
+        return res.status(400).json({
+          success:false,
+          message:"Please enter valide category values"
+        });
+      }
+
     const numPage=Number(page);
     const numLimit=Number(limit);
-
+    
     if(!Number.isInteger(numPage) || numPage < 1 )
     {
       return res.status(400).json({
@@ -57,15 +68,8 @@ const getAllExpense = async (req, res,next) => {
       });
     }
     //access expenses and totalExpeses from service
-    const {expenses,totalExpenses} = await getAllExpenseService({ userId,page:numPage,limit:numLimit });
+    const {expenses,totalExpenses} = await getAllExpenseService({ userId,page:numPage,limit:numLimit,category });
 
-    if(expenses.length===0)
-    {
-     return res.status(404).json({
-      success:false,
-      message:"Expenses not found!"
-     });
-    }
     //calculate page count using Math.ceil
     const totalPage=Math.ceil(totalExpenses/numLimit);
     
@@ -74,7 +78,7 @@ const getAllExpense = async (req, res,next) => {
       success: true,
       message: " All Expenses fetched successfully",
       "pagination":{
-        "total":totalExpenses.length,
+        "total":totalExpenses,
         "currentPage":numPage,
         "limit":numLimit,
         "totalPages":totalPage,
