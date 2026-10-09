@@ -8,9 +8,16 @@ const createExpenseService = async ({
   userId,
 }) => {
   const num = Number(amount); //number validation
-  if (Number.isNaN(num) || num <= 0 || !category || category.trim() === "") {
+  if (Number.isNaN(num) || num <= 0) {
     const error = new Error(
       "Amount must be a positive number and category must not be empty.",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!category || category.trim() === "") {
+    const error = new Error(
+      "category must not be empty and Please chooise category values!",
     );
     error.statusCode = 400;
     throw error;
