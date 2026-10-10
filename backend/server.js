@@ -8,6 +8,7 @@ const morgan=require("morgan");
 const database=require("./config/db");
 const userRoutes=require("./routes/userRoutes");
 const expenseRoutes=require("./routes/expenseRoutes");
+const dashBordRoutes=require("./routes/dashBordRoutes");
 const {errorHandle}=require("./middileware/errorHandler");
 
 const PORT=process.env.PORT;
@@ -18,6 +19,7 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use("/api",userRoutes);
 app.use("/api",expenseRoutes);
+app.use("/api",dashBordRoutes);
 app.use(errorHandle);
 
 const executeServer=async()=>{

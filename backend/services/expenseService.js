@@ -1,5 +1,30 @@
 const { ExpenseModel } = require("../models/Expense");
 const mongoose = require("mongoose");
+
+
+//call function 
+const buildExpenseMatch = ({ userId, from, to }) => {
+  const match = {
+    userId: new mongoose.Types.ObjectId(userId),
+  };
+
+  if (from && to) {
+    const startDate = new Date(from);
+    const endDate = new Date(to);
+
+    // Include the entire end date
+    endDate.setDate(endDate.getDate() + 1);
+
+    match.date = {
+      $gte: startDate,
+      $lt: endDate,
+    };
+  }
+
+  return match;
+};
+
+
 //CreateExpenses
 const createExpenseService = async ({
   amount,
@@ -74,12 +99,10 @@ const getExpenseByIdService = async ({ expenseId, userId }) => {
 };
 
 //Calculate tatalSpend and totalExpenses
-const getExpenseStatsByService = async ({ userId }) => {
+const getExpenseStatsByService = async ({ userId,from,to }) => {
   const result = await ExpenseModel.aggregate([
     {
-      $match: {
-        userId: new mongoose.Types.ObjectId(userId),
-      },
+      $match: buildExpenseMatch({ userId, from, to }),
     },
     {
       $group: {
@@ -94,12 +117,10 @@ const getExpenseStatsByService = async ({ userId }) => {
 };
 
 //get category-wise statistic
-const getCategoryStatsByServices = async ({ userId }) => {
+const getCategoryStatsByServices = async ({ userId,from,to }) => {
   const result = await ExpenseModel.aggregate([
     {
-      $match: {
-        userId: new mongoose.Types.ObjectId(userId),
-      },
+      $match:  buildExpenseMatch({ userId, from, to }),
     },
     {
       $group: {
@@ -114,12 +135,10 @@ const getCategoryStatsByServices = async ({ userId }) => {
 
 //get Recently-expenses by sort date
 
-const getRecentExpensesByService = async ({ userId }) => {
+const getRecentExpensesByService = async ({ userId,from,to }) => {
   const result = await ExpenseModel.aggregate([
     {
-      $match: {
-        userId: new mongoose.Types.ObjectId(userId),
-      },
+      $match: buildExpenseMatch({ userId, from, to })
     },
     {
       $sort: { date: -1 },
