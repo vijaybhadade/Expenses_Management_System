@@ -4,25 +4,39 @@ const {createExpenses,
     getAllExpense,
     getSingleExpense,
     updateSingleExpense,
-    deleteSingleExpense
+    deleteSingleExpense,
+    getExpenseStats,
+    getCategoryStats,
+     getRecentExpenses
 }=require("../controllers/expenseController");
 const {authenticateUser}=require("../middileware/authMeddileware");
 
-//create Expense 
-routes.post("/expenses",authenticateUser,createExpenses);
+routes.use(authenticateUser);
 
-//Get Expense
-routes.get("/expenses",authenticateUser,getAllExpense);
+//1.create Expense 
+routes.post("/expenses",createExpenses);
 
-//Get Expense with id
-routes.get("/expenses/:expenseId",authenticateUser,getSingleExpense);
-
-//Update Expense with id
-routes.put("/expenses/:expenseId",authenticateUser,updateSingleExpense);
+// 2. Get all expenses (pagination and filters)
+routes.get("/expenses",getAllExpense);
 
 
-//Delete Expense with id
-routes.delete("/expenses/:expenseId",authenticateUser,deleteSingleExpense);
+// 3. Overall expense statistics
+routes.get("/expenses/stats",getExpenseStats);
+
+// 4. Category-wise statistics
+routes.get("/expenses/category", getCategoryStats);
+
+// 5. Recent expenses
+routes.get("/expenses/recent", getRecentExpenses);
+
+// 6. Get one expense by ID
+routes.get("/expenses/:expenseId", getSingleExpense);
+
+// 7. Update one expense
+routes.put("/expenses/:expenseId", updateSingleExpense);
+
+// 8. Delete one expense
+routes.delete("/expenses/:expenseId", deleteSingleExpense);
 
 
 module.exports=routes;      

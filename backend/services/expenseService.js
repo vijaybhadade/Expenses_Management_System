@@ -1,5 +1,5 @@
 const { ExpenseModel } = require("../models/Expense");
-
+const mongoose = require("mongoose");
 //CreateExpenses
 const createExpenseService = async ({
   amount,
@@ -73,6 +73,63 @@ const getExpenseByIdService = async ({ expenseId, userId }) => {
   return getExpenseById;
 };
 
+//Calculate tatalSpend and totalExpenses
+const getExpenseStatsByService = async ({ userId }) => {
+  const result = await ExpenseModel.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalSpend: { $sum: "$amount" },
+        totalExpenses: { $sum: 1 },
+      },
+    },
+  ]);
+  const stats = result[0] || { totalSpend: 0, totalExpenses: 0 };
+  return { totalSpend: stats.totalSpend, totalExpenses: stats.totalExpenses };
+};
+
+//get category-wise statistic
+const getCategoryStatsByServices = async ({ userId }) => {
+  const result = await ExpenseModel.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $group: {
+        _id: "$category",
+        totalSpend: { $sum: "$amount" },
+        totalExpenses: { $sum: 1 },
+      },
+    },
+  ]);
+  return result;
+};
+
+//get Recently-expenses by sort date
+
+const getRecentExpensesByService = async ({ userId }) => {
+  const result = await ExpenseModel.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $sort: { date: -1 },
+    },
+    {
+      $limit: 5,
+    },
+  ]);
+  return result;
+};
 //Update Expenses by id
 const getUpdatedExpenseByIdService = async ({
   expenseId,
@@ -142,6 +199,9 @@ module.exports = {
   createExpenseService,
   getAllExpenseService,
   getExpenseByIdService,
+  getExpenseStatsByService,
   getUpdatedExpenseByIdService,
   getDeletedExpenseByIdService,
+  getCategoryStatsByServices,
+  getRecentExpensesByService
 };
