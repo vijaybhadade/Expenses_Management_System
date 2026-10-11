@@ -1,0 +1,27 @@
+const mongoose = require("mongoose");
+
+const budgetSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required:[true,"Please enter userid!"]
+  },
+  category: {
+    type: String,
+    enum: ["Food", "Fashion", "Equipment", "Electronics"],
+    required: [true, "Please chooise any one category values!"],
+  },
+  limit: {
+    type: Number,
+    required: [true,"Please enter limit amount!"],
+    min:[0.01,"Budget limit must be greater than zero"]
+  },
+  month: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const BudgetModel = mongoose.model("Budget", budgetSchema);
+
+module.exports = { BudgetModel };
