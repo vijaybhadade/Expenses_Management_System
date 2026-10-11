@@ -1,52 +1,65 @@
 const { BudgetModel } = require("../models/Budget");
 
+const monthValidation = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 const createBudgetService = async ({ userId, category, limit, month }) => {
   const num = Number(limit);
-  const normalizeMonth=Number(month);
 
-  //check validation month
-  if(isNaN(normalizeMonth) || normalizeMonth <1 || normalizeMonth > 12)
-  {
-    const error= new Error("Invalide month values!");
-    error.statusCode=400;
+  // Check if any required field is missing or undefined
+  if (!userId || !category || limit === undefined || !month) {
+    const error = new Error("Please enter all fields values: userId, category, limit and month");
+    error.statusCode = 400;
     throw error;
   }
-  //check validation limit
+
+  // Check validation for month format (YYYY-MM)
+  if (!monthValidation.test(month)) {
+    const error = new Error("Invalid month format! Expected YYYY-MM.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Normalize month into a Date
+  const [year, monthNumber] = month.split("-").map(Number);
+  const normalizeMonth = new Date(
+    Date.UTC(year, monthNumber - 1, 1)
+  );
+
+  // Check validation for limit
   if (Number.isNaN(num) || num <= 0) {
     const error = new Error(
-      "Limit amount must be a positive number and limit must be greater than zero!",
+      "Limit amount must be a positive number and limit must be greater than zero!"
     );
     error.statusCode = 400;
     throw error;
   }
-  //check validation category
-  
 
-  if (category ||category.trim() === "") {
+  // Check validation for category and trim it
+  if (typeof category !== "string" || category.trim() === "") {
     const error = new Error(
-      "category must not be empty and Please chooise category values!",
+      "Category must not be empty and please choose category values!"
     );
     error.statusCode = 400;
     throw error;
   }
-  //check if user code not provide any vlaues and trying to create 
-  if(category===undefined || num===undefined || normalizeMonth===undefined)
-  {
-    const error= new Error("Please enter all fields values: category , limit and month");
-    error.statusCode=400;
-    throw error;
-  }
+  const normalizedCategory = category.trim();
+
   try {
-    const result = await BudgetModel.exists({ userId ,category,month:normalizeMonth});
+    const result = await BudgetModel.exists({ userId, category: normalizedCategory, month: normalizeMonth });
     if (result) {
       const error = new Error("Budget already exists!");
       error.statusCode = 409;
       throw error;
     }
 
-    const createdBudget=await BudgetModel.create({userId,category,limit:num,month:normalizeMonth});
+    const createdBudget = await BudgetModel.create({
+      userId,
+      category: normalizedCategory,
+      limit: num,
+      month: normalizeMonth,
+    });
 
-    return {createdBudget};
+    return { createdBudget };
   } catch (error) {
     if (error.name === "ValidationError") {
       error.statusCode = 400;
