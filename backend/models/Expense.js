@@ -11,7 +11,7 @@ const expenseSchema= new mongoose.Schema({
  },
  category:{
     type:String,
-    enum:["Food","Fashion","Equipment","Electronics"],
+    enum: ["Food & Dining", "Groceries", "Transportation", "Housing & Rent","Utilities","Healthcare","Shopping","Entertainment","Education","Personal Care","Travel","EMI & Loans","Insurance","Family & Gifts"],
     required:[true,"Please choose any one options!"]
  },
  description:{
@@ -22,12 +22,6 @@ const expenseSchema= new mongoose.Schema({
     required:[true,"Please add date"],
     default:Date.now,
  },
- page:{
-
- },
- limit:{
-
- }
 });
 
 const ExpenseModel= mongoose.model("Expense",expenseSchema);

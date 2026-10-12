@@ -6,7 +6,7 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   const num = Number(limit);
 
   // Check if any required field is missing or undefined
-  if (!userId || !category || limit === undefined || !month) {
+  if (!userId || !category || num === undefined || !month) {
     const error = new Error("Please enter all fields values: userId, category, limit and month");
     error.statusCode = 400;
     throw error;
@@ -21,9 +21,7 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
 
   // Normalize month into a Date
   const [year, monthNumber] = month.split("-").map(Number);
-  const normalizeMonth = new Date(
-    Date.UTC(year, monthNumber - 1, 1)
-  );
+  const normalizeMonth = new Date(Date.UTC(year, monthNumber - 1, 1));
 
   // Check validation for limit
   if (Number.isNaN(num) || num <= 0) {
