@@ -1,11 +1,12 @@
 const {
   createBudgetService,
   getBugetService,
+  compareBudgetService,
   upsertBudgetService,
   deleteBudgetService,
 } = require("../services/budgetService");
 
-//create new budget
+//1.create new budget
 
 const createBudget = async (req, res, next) => {
   try {
@@ -29,7 +30,7 @@ const createBudget = async (req, res, next) => {
   }
 };
 
-//Get all budgets
+//2.Get all budgets
 const getBudgets = async (req, res, next) => {
   try {
     const { userId } = req.user;
@@ -46,6 +47,24 @@ const getBudgets = async (req, res, next) => {
     next(error);
   }
 };
+
+//3.compare budget and actual amount
+
+const compareBudget=async(req,res,next)=>{
+  try{
+    const{month}=req.query;
+    const{userId}=req.user;
+     const result= await compareBudgetService({userId,month});
+     res.status(200).json({
+      success:true,
+      message:"Gets all Details with budgets successFull..",
+      result
+     });
+  }catch(error)
+  {
+  next(error);
+}
+}
 
 //3.Update budget
 
@@ -90,6 +109,7 @@ const deleteBudget = async (req, res, next) => {
 module.exports = {
   createBudget,
   getBudgets,
+  compareBudget,
   updateBudget,
   deleteBudget,
 };

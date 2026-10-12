@@ -1,4 +1,5 @@
 const { BudgetModel } = require("../models/Budget");
+const { ExpenseModel}=require("../models/Expense");
 const mongoose=require("mongoose");
 const monthValidation = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -136,6 +137,86 @@ const getBugetService = async ({ userId, category, month }) => {
   return budget;
 };
 
+//3.get Compare budget and actual amount
+const compareBudgetService=async({userId,month})=>{
+ 
+//month validation
+  if(month===undefined)
+  {
+    const error= new Error("Please enter month values!");
+    error.statusCode=400;
+    throw error;
+  }
+  if(typeof month!=="string" || !monthValidation.test(month))
+  {
+    const error= new Error("Invalide month format! Expected YYYY-MM.");
+    error.statusCode=400;
+    throw error;
+  }
+
+  const [year,monthNumber]=month.split("-").map(Number);
+  const normalizeMonth=new Date(Date.UTC(year,monthNumber-1,1));
+
+  //start date
+  const startDate=normalizeMonth;
+
+  //end date
+  const endDate= new Date(Date.UTC(year,monthNumber,1));
+
+    const budgets=await BudgetModel.find({userId,month:normalizeMonth});
+
+    const result=await  ExpenseModel.aggregate([
+      {
+        $match:{
+          userId: new mongoose.Types.ObjectId(userId),
+          date:{
+            $gte:startDate,
+            $lt:endDate
+          }
+        }
+      },{
+        $group:{
+          _id:"$category",
+          totalSpend:{
+           $sum:"$amount"
+          },
+          totalExpenses:{
+            $sum:1
+          }
+        }
+      }
+    ]);
+    const compareResult = await Promise.all(
+      budgets.map(async (budget) => {
+        const budgetCategory = budget.category;
+        const budgetLimit = budget.limit;
+        const categoryMatch = await ExpenseModel.find({
+          userId,
+          category: budgetCategory,
+          date: {
+            $gte: startDate,
+            $lt: endDate,
+          },
+        });
+
+        const totalSpend = categoryMatch.reduce(
+          (sum, expense) => sum + Number(expense.amount || 0),
+          0,
+        );
+
+        return {
+          category: budgetCategory,
+          budgetLimit,
+          totalSpend,
+          totalExpenses: categoryMatch.length,
+          remaining: budgetLimit - totalSpend,
+        };
+      }),
+    );
+
+    return compareResult;
+};
+
 //3.update budget
 const upsertBudgetService = async ({ userId, category, limit, month }) => {
   const updateFields = {};
@@ -238,4 +319,9 @@ const deleteBudgetService=async({userId,budgetId})=>{
   }
   return isBudget;
 }
-module.exports = { createBudgetService, getBugetService, upsertBudgetService,deleteBudgetService };
+module.exports = { 
+  createBudgetService, 
+  getBugetService, 
+  compareBudgetService,
+  upsertBudgetService,
+  deleteBudgetService };
