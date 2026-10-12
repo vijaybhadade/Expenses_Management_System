@@ -973,3 +973,185 @@ pypandoc.convert_text(readme, "md", format="md", outputfile=str(out_path), extra
 print(f"Created: {out_path}")
 print(f"Size: {out_path.stat().st_size} bytes")
 >>>>>>> 8392f8fe8e11f5648c8cb2a4508ab0c3ff528d1b
+>>>>>>
+
+
+## Budget Management API
+
+The Budget Management module allows authenticated users to create, retrieve, update, and delete monthly budgets for different expense categories.
+
+### Authentication
+
+All Budget endpoints require a valid JWT access token.
+
+Include the token in the request header:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+The authenticated user's ID is obtained from `req.user.userId`, rather than trusting a `userId` supplied by the client. This helps enforce user-specific budget access.
+
+### Budget Categories
+
+The supported categories are:
+
+- Food & Dining
+- Groceries
+- Transportation
+- Housing & Rent
+- Utilities
+- Healthcare
+- Shopping
+- Entertainment
+- Education
+- Personal Care
+- Travel
+- EMI & Loans
+- Insurance
+- Family & Gifts
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/budget` | Create a new budget |
+| GET | `/api/budget` | Retrieve budgets, with optional filters |
+| PATCH | `/api/budget` | Create or update a budget using upsert |
+| DELETE | `/api/budget/:budgetId` | Delete a budget by ID |
+
+> Adjust the paths if your application's main router mounts the Budget router at a different prefix.
+
+### 1. Create Budget
+
+**Endpoint:** `POST /api/budget`
+
+Creates a budget for a category and month.
+
+Example request body:
+
+```json
+{
+  "category": "Food & Dining",
+  "limit": 3000,
+  "month": "2026-10"
+}
+```
+
+**Behavior:**
+- Requires `category`, `limit`, and `month`.
+- The category must be supported.
+- The limit must be a positive, finite number.
+- The month must use the `YYYY-MM` format.
+- The month is normalized to the first day of the month in UTC.
+- Creating a duplicate budget for the same user, category, and month returns a conflict response.
+
+**Success status:** `201 Created`
+
+### 2. Get Budgets
+
+**Endpoint:** `GET /api/budget`
+
+Retrieves budgets belonging to the authenticated user.
+
+Optional query parameters:
+
+| Parameter | Description | Example |
+|---|---|---|
+| `category` | Filter by category | `Food & Dining` |
+| `month` | Filter by month (`YYYY-MM`) | `2026-10` |
+
+Example requests:
+
+```http
+GET /api/budget
+GET /api/budget?category=Food%20%26%20Dining
+GET /api/budget?month=2026-10
+```
+
+**Behavior:**
+- Returns only the authenticated user's budgets.
+- Supports optional category and month filters.
+- Returns an empty array when no matching budgets are found.
+
+**Success status:** `200 OK`
+
+### 3. Upsert Budget
+
+**Endpoint:** `PATCH /api/budget`
+
+Creates a budget if no matching record exists; otherwise, updates the existing budget.
+
+Example request body:
+
+```json
+{
+  "category": "Food & Dining",
+  "limit": 4000,
+  "month": "2026-10"
+}
+```
+
+**Behavior:**
+- Matches a budget using the authenticated user's ID, category, and normalized month.
+- Updates the existing budget if a match is found.
+- Creates a new budget if no match exists.
+- Validates the input before saving.
+- Uses the compound unique index to help prevent duplicate budgets.
+
+**Success status:** `200 OK`
+
+### 4. Delete Budget
+
+**Endpoint:** `DELETE /api/budget/:budgetId`
+
+Deletes a budget owned by the authenticated user.
+
+Example request:
+
+```http
+DELETE /api/budget/68f000000000000000000001
+```
+
+**Behavior:**
+- Validates the budget ID.
+- Deletes only a budget matching both the budget ID and authenticated user's ID.
+- Returns a not-found response if no matching budget exists.
+
+**Success status:** `200 OK`
+
+### Error Handling
+
+| HTTP status | Meaning |
+|---|---|
+| `400 Bad Request` | Invalid input, month format, or budget ID |
+| `401 Unauthorized` | Missing or invalid authentication token |
+| `404 Not Found` | No matching budget found for the authenticated user |
+| `409 Conflict` | A duplicate budget already exists |
+| `500 Internal Server Error` | Unexpected server-side error |
+
+Actual responses depend on the application's authentication and centralized error-handling middleware.
+
+### Database Constraints
+
+The Budget model uses a compound unique index on:
+
+```javascript
+{ userId: 1, category: 1, month: 1 }
+```
+
+This enforces uniqueness for each user's category and normalized month combination.
+
+### Request Flow
+
+The Budget API follows this backend architecture:
+
+**Route → Authentication Middleware → Controller → Service → Budget Model → MongoDB → Service → Controller → Client**
+
+- **Route:** Matches the HTTP request.
+- **Authentication middleware:** Verifies the JWT and identifies the user.
+- **Controller:** Extracts request data, calls the service, and sends the response.
+- **Service:** Performs input validation and business logic.
+- **Budget Model:** Defines the schema and database operations.
+- **MongoDB:** Stores and retrieves budget records.
+
