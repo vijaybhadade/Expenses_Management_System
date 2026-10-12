@@ -7,7 +7,9 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
 
   // Check if any required field is missing or undefined
   if (!userId || !category || num === undefined || !month) {
-    const error = new Error("Please enter all fields values: userId, category, limit and month");
+    const error = new Error(
+      "Please enter all fields values: userId, category, limit and month",
+    );
     error.statusCode = 400;
     throw error;
   }
@@ -26,7 +28,7 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   // Check validation for limit
   if (Number.isNaN(num) || num <= 0) {
     const error = new Error(
-      "Limit amount must be a positive number and limit must be greater than zero!"
+      "Limit amount must be a positive number and limit must be greater than zero!",
     );
     error.statusCode = 400;
     throw error;
@@ -35,7 +37,7 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   // Check validation for category and trim it
   if (typeof category !== "string" || category.trim() === "") {
     const error = new Error(
-      "Category must not be empty and please choose category values!"
+      "Category must not be empty and please choose category values!",
     );
     error.statusCode = 400;
     throw error;
@@ -43,7 +45,11 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   const normalizedCategory = category.trim();
 
   try {
-    const result = await BudgetModel.exists({ userId, category: normalizedCategory, month: normalizeMonth });
+    const result = await BudgetModel.exists({
+      userId,
+      category: normalizedCategory,
+      month: normalizeMonth,
+    });
     if (result) {
       const error = new Error("Budget already exists!");
       error.statusCode = 409;
@@ -66,4 +72,60 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   }
 };
 
-module.exports = { createBudgetService };
+//Get all budgets
+
+ const getBugetService = async ({ userId, category, month }) => {
+  const filter = { userId };
+  const allowCategory = [
+    "Food & Dining",
+    "Groceries",
+    "Transportation",
+    "Housing & Rent",
+    "Utilities",
+    "Healthcare",
+    "Shopping",
+    "Entertainment",
+    "Education",
+    "Personal Care",
+    "Travel",
+    "EMI & Loans",
+    "Insurance",
+    "Family & Gifts",
+  ];
+
+  if (month !== undefined) {
+    if (!monthValidation.test(month)) {
+      const error = new Error("Invalid month format! Expected YYYY-MM.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const [year, monthNumber] = month.split("-").map(Number);
+    filter.month = new Date(Date.UTC(year, monthNumber - 1, 1));
+  }
+
+  if (category !== undefined) {
+    if (typeof category !== "string" || category.trim() === "") {
+      const error = new Error(
+        "Category must not be empty and please choose category values!",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const normalizedCategory = category.trim();
+
+    if (!allowCategory.includes(normalizedCategory)) {
+      const error = new Error("Please enter valid category values!");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    filter.category = normalizedCategory;
+  }
+
+  const budget = await BudgetModel.find(filter);
+  return budget;
+};
+
+module.exports = { createBudgetService, getBugetService };
