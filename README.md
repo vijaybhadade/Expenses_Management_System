@@ -1155,3 +1155,116 @@ The Budget API follows this backend architecture:
 - **Budget Model:** Defines the schema and database operations.
 - **MongoDB:** Stores and retrieves budget records.
 
+
+
+### Budget vs Actual Spending API
+
+**Endpoint:** `GET /api/budget/compare?month=YYYY-MM`
+
+**Authentication:** Required (JWT Bearer Token)
+
+**Description:**
+
+Compares the authenticated user's budget limits with their actual expenses for a selected month. It calculates actual spending, remaining budget, usage percentage, total expenses, and budget status for each category that has a budget configured for that month.
+
+#### Request
+
+```http
+GET /api/budget/compare?month=2026-10
+Authorization: Bearer <your_jwt_token>
+```
+
+**Query Parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `month` | Yes | Month to compare in `YYYY-MM` format |
+
+#### Response — HTTP 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Budget comparison retrieved successfully.",
+  "month": "2026-10",
+  "comparisons": [
+    {
+      "category": "Groceries",
+      "budgetLimit": 2000,
+      "actualSpending": 250,
+      "totalExpenses": 1,
+      "usagePercentage": 12.5,
+      "remainingBudget": 1750,
+      "status": "within_budget"
+    }
+  ]
+}
+```
+
+#### Response Fields
+
+| Field | Description |
+|---|---|
+| `month` | Selected month in `YYYY-MM` format |
+| `comparisons` | Array of budget comparisons by category |
+| `category` | Budget category |
+| `budgetLimit` | Configured budget limit |
+| `actualSpending` | Total expenses for that category during the selected month |
+| `totalExpenses` | Number of expenses included in the total |
+| `usagePercentage` | Percentage of the budget used |
+| `remainingBudget` | Budget limit minus actual spending; may be negative |
+| `status` | Budget usage status |
+
+#### Budget Status Rules
+
+| Condition | Status |
+|---|---|
+| Usage below 90% | `within_budget` |
+| Usage from 90% through 100%, inclusive | `near_limit` |
+| Usage above 100% | `exceeded` |
+
+#### Business Rules
+
+- Only the authenticated user's budgets and expenses are considered.
+- Month input must follow the `YYYY-MM` format.
+- Expenses are filtered to the selected calendar month, using an inclusive start date and an exclusive start date of the following month.
+- Expenses are grouped by category and their amounts are summed.
+- Categories with a budget but no matching expenses return zero spending and zero expenses.
+- Only categories with a budget for the selected month appear in the comparison.
+- If no budgets exist for the selected month, the API returns HTTP 200 with an empty `comparisons` array.
+- Invalid or missing month values return HTTP 400.
+
+#### Error Response Example
+
+```json
+{
+  "success": false,
+  "message": "Invalid month format! Expected YYYY-MM."
+}
+```
+
+**HTTP Status Codes**
+
+| Status | Meaning |
+|---|---|
+| `200` | Comparison retrieved successfully |
+| `400` | Missing or invalid month parameter |
+| `401` | Authentication token missing or invalid |
+| `500` | Unexpected server error |
+
+#### Request Flow
+
+Route → Authentication Middleware → Controller → Service → Model → MongoDB → Response through Controller
+
+#### Testing Checklist
+
+- [x] Valid month with budgets and expenses
+- [x] Budget category with no expenses
+- [x] Spending below 90% of budget
+- [x] Spending at 90% and at 100% of budget
+- [x] Spending above 100% of budget
+- [x] Missing or invalid month
+- [x] Month with no budgets
+- [x] Authenticated user data isolation
+
+
