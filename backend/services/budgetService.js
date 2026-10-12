@@ -1,6 +1,6 @@
 const { BudgetModel } = require("../models/Budget");
-const { ExpenseModel}=require("../models/Expense");
-const mongoose=require("mongoose");
+const { ExpenseModel } = require("../models/Expense");
+const mongoose = require("mongoose");
 const monthValidation = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const allowCategory = [
@@ -138,83 +138,89 @@ const getBugetService = async ({ userId, category, month }) => {
 };
 
 //3.get Compare budget and actual amount
-const compareBudgetService=async({userId,month})=>{
- 
-//month validation
-  if(month===undefined)
-  {
-    const error= new Error("Please enter month values!");
-    error.statusCode=400;
+const compareBudgetService = async ({ userId, month }) => {
+  //month validation
+  if (month === undefined) {
+    const error = new Error("Please enter month values!");
+    error.statusCode = 400;
     throw error;
   }
-  if(typeof month!=="string" || !monthValidation.test(month))
-  {
-    const error= new Error("Invalide month format! Expected YYYY-MM.");
-    error.statusCode=400;
+  if (typeof month !== "string" || !monthValidation.test(month)) {
+    const error = new Error("Invalide month format! Expected YYYY-MM.");
+    error.statusCode = 400;
     throw error;
   }
 
-  const [year,monthNumber]=month.split("-").map(Number);
-  const normalizeMonth=new Date(Date.UTC(year,monthNumber-1,1));
+  const [year, monthNumber] = month.split("-").map(Number);
+  const normalizeMonth = new Date(Date.UTC(year, monthNumber - 1, 1));
 
   //start date
-  const startDate=normalizeMonth;
+  const startDate = normalizeMonth;
 
   //end date
-  const endDate= new Date(Date.UTC(year,monthNumber,1));
+  const endDate = new Date(Date.UTC(year, monthNumber, 1));
 
-    const budgets=await BudgetModel.find({userId,month:normalizeMonth});
+  const budgets = await BudgetModel.find({ userId, month: normalizeMonth });
 
-    const result=await  ExpenseModel.aggregate([
-      {
-        $match:{
-          userId: new mongoose.Types.ObjectId(userId),
-          date:{
-            $gte:startDate,
-            $lt:endDate
-          }
-        }
-      },{
-        $group:{
-          _id:"$category",
-          totalSpend:{
-           $sum:"$amount"
-          },
-          totalExpenses:{
-            $sum:1
-          }
-        }
-      }
-    ]);
-    const compareResult = await Promise.all(
-      budgets.map(async (budget) => {
-        const budgetCategory = budget.category;
-        const budgetLimit = budget.limit;
-        const categoryMatch = await ExpenseModel.find({
-          userId,
-          category: budgetCategory,
-          date: {
-            $gte: startDate,
-            $lt: endDate,
-          },
-        });
+  const result = await ExpenseModel.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+        date: {
+          $gte: startDate,
+          $lt: endDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$category",
+        totalSpend: {
+          $sum: "$amount",
+        },
+        totalExpenses: {
+          $sum: 1,
+        },
+      },
+    },
+  ]);
 
-        const totalSpend = categoryMatch.reduce(
-          (sum, expense) => sum + Number(expense.amount || 0),
-          0,
-        );
-
-        return {
-          category: budgetCategory,
-          budgetLimit,
-          totalSpend,
-          totalExpenses: categoryMatch.length,
-          remaining: budgetLimit - totalSpend,
-        };
-      }),
+  //compare values and calculate remaingBudget,acutalSpending and limit
+  const compareResult = budgets.map((budget) => {
+    const budgetCategory = budget.category;
+    const budgetLimit = budget.limit;
+    const categoryMatch = result.find(
+      (expense) => expense._id === budgetCategory,
     );
+    const totalSpend = categoryMatch?.totalSpend ?? 0; // check if there is no spend value
+    const totalExpenses = categoryMatch?.totalExpenses ?? 0; // check if there is no expense value
+    const remainingBudget = budgetLimit - totalSpend; // calculate remaining amount
+    const usagePercentage =
+      budgetLimit > 0 ? (totalSpend / budgetLimit) * 100 : 0;
 
-    return compareResult;
+    let status ;
+
+    if (usagePercentage > 100) {
+      status = "exceeded";
+    } else if (usagePercentage >= 90 ) {
+      status = "near_limit";
+    }else 
+    {
+      status= "within_budget";
+    }
+
+    return {
+      category: budgetCategory,
+      budgetLimit,
+      actualSpending: totalSpend,
+      totalExpenses,
+      usagePercentage,
+      remainingBudget,
+      status
+    };
+  });
+
+  return {monthDate:month,comparisons:compareResult};
 };
 
 //3.update budget
@@ -223,7 +229,9 @@ const upsertBudgetService = async ({ userId, category, limit, month }) => {
 
   // 2. Make userId, category, limit, and month required (handling undefined and null)
   if (!userId || !category || limit === undefined || limit === null || !month) {
-    const error = new Error("userId, category, limit, and month are required fields!");
+    const error = new Error(
+      "userId, category, limit, and month are required fields!",
+    );
     error.statusCode = 400;
     throw error;
   }
@@ -274,10 +282,10 @@ const upsertBudgetService = async ({ userId, category, limit, month }) => {
     const updateBudget = await BudgetModel.findOneAndUpdate(
       { userId, category: normalizedCategory, month: normalizeMonth },
       { $set: updateFields },
-      { 
-        new: true, 
-        upsert: true, 
-        runValidators: true 
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
       },
     );
 
@@ -300,28 +308,29 @@ const upsertBudgetService = async ({ userId, category, limit, month }) => {
 };
 
 //4.Delete budget using budgetID
-const deleteBudgetService=async({userId,budgetId})=>{
-  
+const deleteBudgetService = async ({ userId, budgetId }) => {
   //validate budgetId
-  if(!mongoose.Types.ObjectId.isValid(budgetId))
-  {
-    const error= new Error("Invalide budget Id!");
-    error.statusCode=400;
-    throw(error);
+  if (!mongoose.Types.ObjectId.isValid(budgetId)) {
+    const error = new Error("Invalide budget Id!");
+    error.statusCode = 400;
+    throw error;
   }
 
-  const isBudget=await BudgetModel.findOneAndDelete({_id:budgetId,userId});
-  if(!isBudget)
-  {
-    const error= new Error("Budget does not exist!");
-    error.statusCode=404;
+  const isBudget = await BudgetModel.findOneAndDelete({
+    _id: budgetId,
+    userId,
+  });
+  if (!isBudget) {
+    const error = new Error("Budget does not exist!");
+    error.statusCode = 404;
     throw error;
   }
   return isBudget;
-}
-module.exports = { 
-  createBudgetService, 
-  getBugetService, 
+};
+module.exports = {
+  createBudgetService,
+  getBugetService,
   compareBudgetService,
   upsertBudgetService,
-  deleteBudgetService };
+  deleteBudgetService,
+};

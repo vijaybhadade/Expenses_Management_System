@@ -54,11 +54,12 @@ const compareBudget=async(req,res,next)=>{
   try{
     const{month}=req.query;
     const{userId}=req.user;
-     const result= await compareBudgetService({userId,month});
+     const {monthDate,comparisons}= await compareBudgetService({userId,month});
      res.status(200).json({
       success:true,
       message:"Gets all Details with budgets successFull..",
-      result
+      "month":monthDate,
+      "comparisons":comparisons
      });
   }catch(error)
   {
