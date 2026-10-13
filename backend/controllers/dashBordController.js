@@ -47,6 +47,7 @@ const getAllData = async (req, res, next) => {
   }
 };
 
+//Get Data into range format
 const getRangeData = async (req, res, next) => {
   try {
     const { from, to } = req.query;
