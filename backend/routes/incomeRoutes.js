@@ -14,12 +14,12 @@ routes.post("/income",createIncome);
 routes.get("/income",getIncome);
 
 //3.get one income record
-routes.get('/income/:id',getIncomeById);
+routes.get('/income/:incomeId',getIncomeById);
 
 //4.Update income
-routes.patch("/income/:id",updateIncome);
+routes.patch("/income/:incomeId",updateIncome);
 
 //5.Delete income
-routes.delete("/delete/:id",deleteIncome);
+routes.delete("/delete/:incomeId",deleteIncome);
 
 module.exports=routes;

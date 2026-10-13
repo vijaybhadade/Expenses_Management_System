@@ -10,7 +10,7 @@ const userRoutes=require("./routes/userRoutes");
 const expenseRoutes=require("./routes/expenseRoutes");
 const dashBordRoutes=require("./routes/dashBordRoutes");
 const budgetRoutes=require("./routes/budgetRoutes");
-const incomeRoutes=require("/routes/incomeRoutes");
+const incomeRoutes=require("./routes/incomeRoutes");
 const {errorHandle}=require("./middileware/errorHandler");
 
 const PORT=process.env.PORT;
