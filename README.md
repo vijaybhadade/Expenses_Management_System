@@ -1268,3 +1268,321 @@ Route → Authentication Middleware → Controller → Service → Model → Mon
 - [x] Authenticated user data isolation
 
 
+# Income Management API
+
+## Overview
+
+The Income Management module allows authenticated users to manage their income records in ExpenseWise. Users can record income from sources such as Salary, Freelance, Business, Investment, Scholarship, and Gift.
+
+The module supports creating, retrieving, updating, and deleting income records. Each record belongs to an authenticated user, ensuring users can access and manage only their own income.
+
+## Features
+
+- Create a new income record.
+- Retrieve income records with pagination.
+- Retrieve a single income record by ID.
+- Partially update an existing income record.
+- Delete an income record.
+- Validate income amounts, sources, dates, and MongoDB ObjectIds.
+- Protect endpoints using JWT authentication middleware.
+- Enforce user-level ownership for database operations.
+- Handle errors using centralized error middleware.
+
+## Technology
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JSON Web Token (JWT)
+
+## Request Flow
+
+Every protected Income API request follows this flow:
+
+**Route → Authentication Middleware → Controller → Service → Model → MongoDB → Response back through Controller**
+
+### Layer responsibilities
+
+1. **Route:** Defines the endpoint and HTTP method.
+2. **Authentication Middleware:** Verifies the JWT and identifies the authenticated user.
+3. **Controller:** Extracts request data, calls the service, and returns the HTTP response.
+4. **Service:** Implements business logic, validates inputs, and enforces ownership.
+5. **Model:** Defines the Income schema and interacts with MongoDB.
+6. **MongoDB:** Stores and retrieves income records.
+7. **Response:** The result returns through the controller to the client.
+
+## Income Schema
+
+| Field         | Type     | Description                                           |
+| ------------- | -------- | ----------------------------------------------------- |
+| `_id`         | ObjectId | Unique income record identifier                       |
+| `userId`      | ObjectId | Reference to the owning User                          |
+| `amount`      | Number   | Income amount; minimum value is 1                     |
+| `source`      | String   | Income source from the allowed enum                   |
+| `description` | String   | Optional description                                  |
+| `date`        | Date     | Income transaction date; defaults to the current date |
+| `createdAt`   | Date     | Automatically generated creation timestamp            |
+| `updatedAt`   | Date     | Automatically updated modification timestamp          |
+
+### Allowed income sources
+
+- Salary
+- Freelance
+- Business
+- Investment
+- Scholarship
+- Gift
+
+## Authentication
+
+All Income endpoints require a valid JWT access token.
+
+Include the token in the request header:
+
+```http
+Authorization: Bearer <your_access_token>
+```
+
+The authentication middleware identifies the user and sets `req.user.userId`. The backend uses this authenticated ID for database operations instead of trusting a user ID supplied in the request body or query parameters.
+
+## API Endpoints
+
+Assuming the router is mounted at `/api`, the endpoints are:
+
+| Method | Endpoint                | Description                    |
+| ------ | ----------------------- | ------------------------------ |
+| POST   | `/api/income`           | Create income                  |
+| GET    | `/api/income`           | Get all income with pagination |
+| GET    | `/api/income/:incomeId` | Get income by ID               |
+| PATCH  | `/api/income/:incomeId` | Partially update income        |
+| DELETE | `/api/income/:incomeId` | Delete income                  |
+
+All endpoints require authentication.
+
+---
+
+## 1. Create Income
+
+**Endpoint:** `POST /api/income`
+
+Creates a new income record for the authenticated user.
+
+### Request body
+
+```json
+{
+  "amount": 25000,
+  "source": "Salary",
+  "description": "October salary",
+  "date": "2026-10-01"
+}
+```
+
+The `date` field is optional. If omitted, the current date is used.
+
+### Successful response — `201 Created`
+
+```json
+{
+  "success": true,
+  "message": "Income created successfully",
+  "income": {
+    "_id": "YOUR_INCOME_ID",
+    "userId": "YOUR_USER_ID",
+    "amount": 25000,
+    "source": "Salary",
+    "description": "October salary",
+    "date": "2026-10-01T00:00:00.000Z"
+  }
+}
+```
+
+The IDs and response fields above are illustrative; the server generates the actual identifiers and timestamps.
+
+## 2. Get All Income
+
+**Endpoint:** `GET /api/income`
+
+Retrieves income records belonging to the authenticated user, ordered by most recently created first.
+
+### Query parameters
+
+| Parameter | Default | Rules                     |
+| --------- | ------: | ------------------------- |
+| `page`    |     `1` | Positive integer          |
+| `limit`   |    `10` | Integer between 1 and 100 |
+
+### Example request
+
+```http
+GET /api/income?page=1&limit=10
+```
+
+### Successful response — `200 OK`
+
+```json
+{
+  "success": true,
+  "income": [],
+  "totalIncome": 0,
+  "pagination": {
+    "currentPage": 1,
+    "limit": 10,
+    "totalPages": 0
+  }
+}
+```
+
+The example represents a user with no income records. When records exist, `income` contains the matching documents.
+
+## 3. Get Income by ID
+
+**Endpoint:** `GET /api/income/:incomeId`
+
+Retrieves one income record using its ID, provided that the record belongs to the authenticated user.
+
+### Example request
+
+```http
+GET /api/income/YOUR_INCOME_ID
+```
+
+### Successful response — `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Get income by incomeId",
+  "income": {
+    "_id": "YOUR_INCOME_ID",
+    "userId": "YOUR_USER_ID",
+    "amount": 25000,
+    "source": "Salary",
+    "description": "October salary"
+  }
+}
+```
+
+The returned document includes the fields stored in MongoDB.
+
+## 4. Update Income
+
+**Endpoint:** `PATCH /api/income/:incomeId`
+
+Partially updates an existing income record. Only supplied, accepted fields are included in the update.
+
+### Example request
+
+```json
+{
+  "description": "Updated October salary"
+}
+```
+
+The existing amount, source, and date remain unchanged.
+
+### Successful response — `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Updated income by incomeId",
+  "updatedIncome": {
+    "_id": "YOUR_INCOME_ID",
+    "userId": "YOUR_USER_ID",
+    "amount": 25000,
+    "source": "Salary",
+    "description": "Updated October salary"
+  }
+}
+```
+
+### Update behavior
+
+- `amount` must be a valid number greater than or equal to 1.
+- `source` must match one of the allowed income sources.
+- `date` must be a valid date.
+- `description` is optional.
+- At least one valid field must be provided.
+- Mongoose update validators are enabled with `runValidators: true`.
+
+## 5. Delete Income
+
+**Endpoint:** `DELETE /api/income/:incomeId`
+
+Deletes an income record belonging to the authenticated user.
+
+### Example request
+
+```http
+DELETE /api/income/YOUR_INCOME_ID
+```
+
+### Successful response — `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Deleted income by incomeId",
+  "deletedIncome": {
+    "_id": "YOUR_INCOME_ID",
+    "userId": "YOUR_USER_ID",
+    "amount": 25000,
+    "source": "Salary",
+    "description": "October salary"
+  }
+}
+```
+
+The deleted record is returned in the response.
+
+---
+
+## Error Handling
+
+The API uses HTTP status codes to communicate success or failure.
+
+| Status code                 | Meaning                                           | Example                       |
+| --------------------------- | ------------------------------------------------- | ----------------------------- |
+| `200 OK`                    | Request completed successfully                    | Get, update, or delete income |
+| `201 Created`               | Income created successfully                       | Create income                 |
+| `400 Bad Request`           | Invalid input or malformed income ID              | Invalid amount or source      |
+| `401 Unauthorized`          | Missing or invalid authentication token           | Token verification fails      |
+| `404 Not Found`             | Record does not exist or is not owned by the user | Another user's income ID      |
+| `500 Internal Server Error` | Unexpected server error                           | Unhandled server-side failure |
+
+The exact error message depends on the validation rule or error middleware.
+
+## Security and Data Integrity
+
+- All Income endpoints require authentication.
+- The authenticated user's ID is obtained from `req.user.userId`.
+- Database queries filter by both `userId` and the income record ID where appropriate.
+- Users cannot retrieve, update, or delete another user's income record through these endpoints.
+- Income source values are restricted to the supported enum.
+- Mongoose schema validation and update validators help maintain data integrity.
+
+## Testing Checklist
+
+- [x] Create income with valid data.
+- [x] Reject invalid amounts and sources.
+- [x] Retrieve income with default pagination.
+- [ ] Retrieve income using custom page and limit values.
+- [ ] Retrieve a record by ID.
+- [ ] Reject malformed income IDs.
+- [ ] Update only the description and verify other fields remain unchanged.
+- [ ] Reject an empty update request.
+- [ ] Prevent cross-user access and modifications.
+- [ ] Delete an existing income record.
+- [ ] Return `404` when deleting an already deleted or nonexistent record.
+- [ ] Reject requests without a valid JWT.
+
+## Future Improvements
+
+- Add filters by source and date range.
+- Add income summaries by month and source.
+- Integrate income with the ExpenseWise dashboard.
+- Add income-versus-expense and balance calculations.
+- Add automated API tests.
+
