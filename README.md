@@ -1586,3 +1586,341 @@ The exact error message depends on the validation rule or error middleware.
 - Add income-versus-expense and balance calculations.
 - Add automated API tests.
 
+
+# ExpenseWise — Transaction Management API
+
+## 1. Overview
+
+The Transaction Management API provides a unified, read-only view of a user's income and expense history.
+
+Instead of creating a separate Transaction collection, the API reuses the existing `Income` and `Expense` collections. It combines their records when the client requests all transactions, identifies each record by its transaction type, and supports filtering and pagination.
+
+### Key Features
+
+- Unified income and expense history.
+- Filter transactions by type.
+- Pagination with configurable page size.
+- Input validation for query parameters.
+- JWT-based authentication.
+- User-specific data access.
+- Empty transaction history handled successfully.
+- No duplicate transaction records or separate Transaction model.
+
+## 2. API Endpoint
+
+| Property | Value |
+|---|---|
+| HTTP Method | `GET` |
+| Endpoint | `/api/transactions` |
+| Authentication | Required |
+| Content Type | `application/json` |
+| Operation | Read-only |
+
+**Example request**
+
+```http
+GET /api/transactions
+Authorization: Bearer <your_jwt_token>
+```
+
+Replace `<your_jwt_token>` with a valid JWT obtained through the login API.
+
+## 3. Query Parameters
+
+The API supports the following query parameters:
+
+| Parameter | Default | Validation | Description |
+|---|---|---|---|
+| `page` | `1` | Positive integer | Page number |
+| `limit` | `10` | Integer from 1 to 100 | Number of records per page |
+| `type` | `all` | `all`, `income`, `expenses` | Transaction type filter |
+
+All parameters are optional.
+
+### Example Requests
+
+**Get all transactions**
+
+```http
+GET /api/transactions
+```
+
+**Get income transactions only**
+
+```http
+GET /api/transactions?type=income
+```
+
+**Get expense transactions only**
+
+```http
+GET /api/transactions?type=expenses
+```
+
+**Get the second page with five records per page**
+
+```http
+GET /api/transactions?page=2&limit=5
+```
+
+**Get income transactions with pagination**
+
+```http
+GET /api/transactions?type=income&page=1&limit=10
+```
+
+## 4. Transaction Types
+
+The `type` parameter supports three values:
+
+- `all`: Retrieves income and expense records together.
+- `income`: Retrieves records from the Income collection only.
+- `expenses`: Retrieves records from the Expense collection only.
+
+For the `all` filter, each returned record includes a `transactionType` property to identify its source.
+
+For the individual `income` and `expenses` filters, the current implementation returns the original model records without adding `transactionType`.
+
+## 5. Successful Response
+
+### Example: All Transactions
+
+```json
+{
+  "success": true,
+  "result": {
+    "data": [
+      {
+        "_id": "exampleIncomeId",
+        "userId": "authenticatedUserId",
+        "amount": 70000,
+        "source": "Business",
+        "description": "Monthly business income",
+        "transactionType": "income"
+      },
+      {
+        "_id": "exampleExpenseId",
+        "userId": "authenticatedUserId",
+        "amount": 500,
+        "category": "Fashion",
+        "description": "Purchase",
+        "transactionType": "expenses"
+      }
+    ],
+    "totalTransactions": 5,
+    "page": 1,
+    "limit": 2,
+    "totalPages": 3
+  }
+}
+```
+
+*Note: The example IDs and records are illustrative. Actual fields depend on the Income and Expense schemas.*
+
+### Response Fields
+
+| Field | Description |
+|---|---|
+| `success` | Indicates whether the request succeeded |
+| `result.data` | Array of returned transaction records |
+| `result.totalTransactions` | Total matching records before pagination |
+| `result.page` | Current page number |
+| `result.limit` | Maximum records requested per page |
+| `result.totalPages` | Total number of pages |
+
+For a user with no matching transactions, the API returns an empty array and zero total pages.
+
+```json
+{
+  "success": true,
+  "result": {
+    "data": [],
+    "totalTransactions": 0,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 0
+  }
+}
+```
+
+## 6. Pagination Logic
+
+Pagination determines which records are returned for the requested page.
+
+The service calculates the number of records to skip:
+
+```js
+const skip = (page - 1) * limit;
+```
+
+For the combined `all` filter, the service sorts the combined records and then selects the requested page.
+
+```js
+const totalTransactions = allTransaction.length;
+const totalPages = Math.ceil(totalTransactions / limit);
+const paginationTransaction = allTransaction.slice(skip, skip + limit);
+```
+
+For the individual income and expenses filters, pagination is performed by MongoDB through Mongoose's `.skip()` and `.limit()` methods.
+
+### Example
+
+Suppose a user has five transactions and requests `limit=2`.
+
+| Page | Records returned |
+|---|---:|
+| Page 1 | 2 |
+| Page 2 | 2 |
+| Page 3 | 1 |
+
+The total remains five across all three pages.
+
+## 7. Authentication and Data Security
+
+The endpoint is protected by JWT authentication middleware.
+
+The middleware validates the Bearer token and attaches the authenticated user's identity to `req.user`.
+
+The controller obtains the user ID from the authenticated request:
+
+```js
+const { userId } = req.user;
+```
+
+The service uses this ID to query both the Income and Expense collections.
+
+The API does not trust a client-provided `userId` query parameter to determine which user's records are returned.
+
+This prevents a client from accessing another user's transaction history merely by changing a query parameter.
+
+## 8. Request Processing Flow
+
+The complete request flow is:
+
+**Route → Authentication middleware → Controller → Service → Income and Expense models → MongoDB → response back through Controller**
+
+### Responsibilities
+
+1. **Route:** Defines `GET /api/transactions` and connects the authentication middleware and controller.
+2. **Authentication middleware:** Validates the JWT and identifies the authenticated user.
+3. **Controller:** Reads query parameters, validates input, invokes the service, and returns the HTTP response.
+4. **Service:** Applies the requested transaction type, retrieves records, combines and sorts records when `type=all`, and calculates pagination metadata.
+5. **Models:** `IncomeModel` and `ExpenseModel` interact with their respective collections.
+6. **MongoDB:** Stores the existing income and expense records.
+7. **Controller response:** Returns the service result as JSON.
+
+## 9. Validation and Error Responses
+
+### Invalid page number
+
+Request:
+
+```http
+GET /api/transactions?page=0
+```
+
+Expected status: `400 Bad Request`
+
+```json
+{
+  "success": false,
+  "message": "Page must be a positive integer greater than 0"
+}
+```
+
+### Invalid limit
+
+Request:
+
+```http
+GET /api/transactions?limit=101
+```
+
+Expected status: `400 Bad Request`
+
+```json
+{
+  "success": false,
+  "message": "Limit must be a positive integer greater than 0 and maximum limit should be 100"
+}
+```
+
+### Invalid transaction type
+
+Request:
+
+```http
+GET /api/transactions?type=transfer
+```
+
+Expected status: `400 Bad Request`
+
+```json
+{
+  "success": false,
+  "message": "Invalid transaction type. Allowed values are 'all', 'income', or 'expenses'."
+}
+```
+
+### Authentication failures
+
+Requests with a missing or invalid JWT are rejected by the authentication middleware and must not return transaction records. The exact response status and message depend on the middleware implementation.
+
+## 10. Database Design Decision
+
+The Transaction Management API does not create a new Transaction collection.
+
+It reuses the existing collections:
+
+- `Income`: Stores income records.
+- `Expense`: Stores expense records.
+
+When `type=all`, the service fetches the user's records from both collections, converts the Mongoose documents to plain objects, adds `transactionType`, combines the arrays, sorts the records, and applies pagination.
+
+This avoids duplicating financial data and keeps the existing Income and Expense modules as the source of truth.
+
+## 11. Sorting Behavior and Scalability
+
+The current combined history is sorted by `createdAt` in descending order. This shows recently created records first; it does not necessarily show the latest transaction date first.
+
+The combined `all` implementation currently loads all matching income and expense records into application memory before sorting and paginating them. This is suitable for a small learning project but can become inefficient as the user's transaction history grows.
+
+Possible future improvements include:
+
+- Sort by the transaction's actual `date` if that better matches the product requirements.
+- Move combined sorting and pagination into the database using an appropriate aggregation strategy.
+- Add indexes that support user-specific queries and sorting.
+- Add integration tests for authentication, filtering, pagination, and data isolation.
+
+## 12. Testing Checklist
+
+The following behaviors were verified during development:
+
+- [x] Fetch all transactions.
+- [x] Filter income transactions.
+- [x] Filter expense transactions.
+- [x] Paginate combined transaction history.
+- [x] Reject `page=0`.
+- [x] Reject `limit=101`.
+- [x] Reject an unsupported transaction type.
+- [x] Reject a request without a valid Bearer token.
+- [x] Reject an invalid JWT.
+- [x] Ignore an untrusted `userId` query parameter when determining the authenticated user's data.
+- [x] Return expenses for a user who has expenses but no income.
+- [x] Return an empty array for a user who has no income or expense records.
+
+Confirm the expected HTTP status codes in Postman for the validation and authentication tests.
+
+## 13. Future Enhancements
+
+Potential improvements for later versions include:
+
+- Filter by transaction date range.
+- Search by description or category.
+- Sort by transaction date and allow configurable sort direction.
+- Optimize combined pagination for large datasets.
+- Add automated integration tests.
+
+These enhancements are not part of the current read-only version unless implemented separately.
+
+
