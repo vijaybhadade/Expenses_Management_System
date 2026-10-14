@@ -20,6 +20,7 @@ const allowCategory = [
   "Family & Gifts",
 ];
 
+//1.Create budget api 
 const createBudgetService = async ({ userId, category, limit, month }) => {
   // Check if any required field is missing or undefined (or null)
   if (!userId || !category || limit === undefined || limit === null || !month) {
@@ -97,8 +98,8 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   }
 };
 
-//Get all budgets
 
+//2.Get all budgets
 const getBugetService = async ({ userId, category, month }) => {
   const filter = { userId };
 
@@ -223,7 +224,7 @@ const compareBudgetService = async ({ userId, month }) => {
   return {monthDate:month,comparisons:compareResult};
 };
 
-//3.update budget
+//4.update budget
 const upsertBudgetService = async ({ userId, category, limit, month }) => {
   const updateFields = {};
 
@@ -307,7 +308,7 @@ const upsertBudgetService = async ({ userId, category, limit, month }) => {
   }
 };
 
-//4.Delete budget using budgetID
+//5.Delete budget using budgetID
 const deleteBudgetService = async ({ userId, budgetId }) => {
   //validate budgetId
   if (!mongoose.Types.ObjectId.isValid(budgetId)) {
