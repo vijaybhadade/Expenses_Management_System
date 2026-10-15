@@ -1923,4 +1923,230 @@ Potential improvements for later versions include:
 
 These enhancements are not part of the current read-only version unless implemented separately.
 
+Recurring Transaction Management API
+ExpenseWise backend API for managing recurring income and expense rules.
+Important: This module stores recurring transaction rules. It does
+not automatically create income or expense records when a rule becomes
+due.
 
+Base URL
+http://localhost:5000/api
+Authentication
+All recurring transaction routes are protected by the authenticateUser
+middleware. Send a valid JWT in the Authorization header:
+Authorization: Bearer <your_jwt_token>
+The authenticated user's ID is taken from req.user.userId. Do not send
+userId in the request body to choose which user's recurring
+transaction to modify.
+Available Endpoints
+  Method                  Endpoint                        Description
+  POST                  /recurring-transactions       Create a recurring
+                                                          transaction rule
+  GET                   /recurring-transactions       Get the authenticated
+                                                          user's recurring rules
+  GET                   /recurring-transactions/:id   Get one recurring rule
+                                                          by ID
+  PATCH                 /recurring-transactions/:id   Partially update a
+                                                          recurring rule
+  DELETE                /recurring-transactions/:id   Delete a recurring rule
+Data Model
+A recurring transaction document contains these fields:
+  Field             Type              Required          Description
+  userId          ObjectId          Yes               Reference to the
+                                                        owning user; set
+                                                        from
+                                                        authentication
+  amount          Number            Yes               Must be greater
+                                                        than zero
+  type            String            Yes               income or
+                                                        expense
+  category        String            Yes               Must be valid for
+                                                        the selected
+                                                        transaction type
+  description     String            No                Optional
+                                                        description;
+                                                        trimmed by the
+                                                        schema
+  frequency       String            Yes               daily,
+                                                        weekly,
+                                                        monthly, or
+                                                        yearly
+  startDate       Date              Yes               Start date;
+                                                        schema defaults
+                                                        to the current
+                                                        date if omitted
+                                                        during creation
+  nextDueDate     Date              Yes               Next scheduled
+                                                        date
+  endDate         Date              No                Optional date
+                                                        after which the
+                                                        rule ends
+  isActive        Boolean           No                Defaults to
+                                                        true; can be
+                                                        set to false to
+                                                        pause the rule
+  createdAt       Date              Automatic         Added by Mongoose
+                                                        timestamps
+  updatedAt       Date              Automatic         Updated by
+                                                        Mongoose
+                                                    timestamps
+Valid Categories
+For type: "income":
+- Salary
+- Freelance
+- Business
+- Investment
+- Scholarship
+- Gift
+For type: "expense":
+- Food & Dining
+- Groceries
+- Transportation
+- Housing & Rent
+- Utilities
+- Healthcare
+- Shopping
+- Entertainment
+- Education
+- Personal Care
+- Travel
+- EMI & Loans
+- Insurance
+- Family & Gifts
+1. Create a Recurring Transaction
+Request
+POST /api/recurring-transactions
+Example request body for recurring salary income:
+{
+  "amount": 75000,
+  "type": "income",
+  "category": "Salary",
+  "description": "Monthly salary",
+  "frequency": "monthly",
+  "startDate": "2026-09-01",
+  "nextDueDate": "2026-10-01"
+}
+isActive defaults to true if omitted. endDate is optional.
+Success response: 201 Created
+The response includes success: true and the created recurring
+transaction document.
+2. Get All Recurring Transactions
+Request
+GET /api/recurring-transactions
+Returns the recurring transaction rules belonging to the authenticated
+user.
+Success response: 200 OK
+The service returns the user's matching records. If the user has no
+recurring rules, the result can be an empty array.
+3. Get a Recurring Transaction by ID
+Request
+GET /api/recurring-transactions/:id
+Example:
+GET /api/recurring-transactions/6ad0a6be59a9ae0135838991
+Returns the matching recurring transaction if it belongs to the
+authenticated user.
+Success response: 200 OK
+4. Update a Recurring Transaction
+Request
+PATCH /api/recurring-transactions/:id
+PATCH updates only the fields supplied in the request body. Omitted
+fields remain unchanged.
+Example: update only the amount:
+{
+  "amount": 75000
+}
+Example: pause a recurring rule:
+{
+  "isActive": false
+}
+Example: clear the optional end date:
+{
+  "endDate": null
+}
+Update validation
+- At least one updateable field must be supplied.
+- amount must be a finite number greater than zero.
+- type must be income or expense.
+- category must be valid for the resulting transaction type,
+  including when only type is changed.
+- frequency must be daily, weekly, monthly, or yearly.
+- Dates must be valid.
+- nextDueDate cannot be earlier than startDate.
+- If endDate is set, it cannot be earlier than startDate, and
+  nextDueDate cannot be later than endDate.
+- isActive must be a Boolean (true or false).
+Success response: 200 OK
+The response includes the updated recurring transaction document.
+5. Delete a Recurring Transaction
+Request
+DELETE /api/recurring-transactions/:id
+Example:
+DELETE /api/recurring-transactions/6ad0a6be59a9ae0135838991
+Deletes the recurring transaction only if it belongs to the
+authenticated user.
+Success response: 200 OK
+Example response shape:
+{
+  "success": true,
+  "message": "deleted Recurring Transaction!",
+  "result": {
+    "_id": "6ad0a6be59a9ae0135838991"
+  }
+}
+The result contains the deleted document; only _id is shown above to
+keep the example short.
+Error Responses
+Errors are passed to the application's error-handling middleware. The
+following status codes are used by the recurring transaction service:
+  HTTP status             Meaning                 Example
+  400 Bad Request       Invalid ID format or    "Invalid ID format!"
+                          invalid input           
+  400 Bad Request       Empty PATCH body        "Please provide at least one field to update!"
+  400 Bad Request       Invalid type/category   "Please enter valid values into category!"
+                          combination             
+  404 Not Found         No matching record for  "Recurring transaction not found!"
+                          the ID and
+                      authenticated user      
+Error response example:
+{
+  "success": false,
+  "message": "Recurring transaction not found!"
+}
+The exact response body depends on the application's shared
+error-handling middleware.
+Security and Design Notes
+- All routes use authentication middleware.
+- The user ID is taken from the verified authentication context
+  (req.user.userId), not from client-supplied userId.
+- Queries for a specific record filter by both _id and userId to
+  prevent users from accessing or changing another user's recurring
+  rules.
+- Updates use findOneAndUpdate() with new: true and
+  runValidators: true.
+- isActive: false pauses the rule; it does not delete it.
+- Deleting a recurring rule does not delete or change any separate
+  income or expense records.
+- Automatic scheduling and generation of actual income/expense records
+  are not implemented by this module yet.
+Request Flow
+Route
+  → Authentication middleware
+  → Controller
+  → Service
+  → Model
+  → MongoDB
+  → Response back through Controller
+Testing
+Test the endpoints using Postman or another API client:
+1. Include a valid JWT in the Authorization header.
+2. Create a recurring income rule and a recurring expense rule.
+3. Retrieve all rules and retrieve a rule by ID.
+4. Update one field at a time to confirm omitted fields remain
+   unchanged.
+5. Try changing type without supplying a compatible category;
+   expect 400 Bad Request.
+6. Send an empty PATCH body; expect 400 Bad Request.
+7. Try an invalid ID format; expect 400 Bad Request.
+8. Retrieve a deleted ID; expect 404 Not Found.
+9. Verify that one user cannot retrieve, update, or delete another
+   user's rule.
