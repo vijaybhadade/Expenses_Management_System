@@ -14,7 +14,7 @@ const {
 
 //1.Create recurringTransaction
 routes.post("/recurring-transactions", createRecurringTransaction);
-
+ 
 //2.Get recurringTransaction
 routes.get("/recurring-transactions", getRecurringTransaction);
 
@@ -26,3 +26,6 @@ routes.patch("/recurring-transactions/:id", updateRecurringTransaction);
 
 //4.delete recurringTransaction using :id
 routes.delete("/recurring-transactions/:id", deleteRecurringTransaction);
+
+
+module.exports=routes;
