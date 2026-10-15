@@ -12,6 +12,7 @@ const dashBordRoutes=require("./routes/dashBordRoutes");
 const budgetRoutes=require("./routes/budgetRoutes");
 const incomeRoutes=require("./routes/incomeRoutes");
 const transactionRoutes=require("./routes/transactionRoutes");
+const recurringRoutes=require("./routes/recurringTransactionRoutes");
 const {errorHandle}=require("./middileware/errorHandler");
 
 const PORT=process.env.PORT;
@@ -26,6 +27,7 @@ app.use("/api",dashBordRoutes);
 app.use("/api",budgetRoutes);
 app.use("/api",incomeRoutes);
 app.use("/api",transactionRoutes);
+app.use("/api",recurringRoutes);
 app.use(errorHandle);
 
 const executeServer=async()=>{

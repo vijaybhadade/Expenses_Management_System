@@ -20,7 +20,7 @@ const allowCategory = [
   "Family & Gifts",
 ];
 
-//1.Create budget api 
+//1.Create budget api
 const createBudgetService = async ({ userId, category, limit, month }) => {
   // Check if any required field is missing or undefined (or null)
   if (!userId || !category || limit === undefined || limit === null || !month) {
@@ -98,7 +98,6 @@ const createBudgetService = async ({ userId, category, limit, month }) => {
   }
 };
 
-
 //2.Get all budgets
 const getBugetService = async ({ userId, category, month }) => {
   const filter = { userId };
@@ -135,6 +134,7 @@ const getBugetService = async ({ userId, category, month }) => {
   }
 
   const budget = await BudgetModel.find(filter);
+  
   return budget;
 };
 
@@ -199,15 +199,14 @@ const compareBudgetService = async ({ userId, month }) => {
     const usagePercentage =
       budgetLimit > 0 ? (totalSpend / budgetLimit) * 100 : 0;
 
-    let status ;
+    let status;
 
     if (usagePercentage > 100) {
       status = "exceeded";
-    } else if (usagePercentage >= 90 ) {
+    } else if (usagePercentage >= 90) {
       status = "near_limit";
-    }else 
-    {
-      status= "within_budget";
+    } else {
+      status = "within_budget";
     }
 
     return {
@@ -217,11 +216,11 @@ const compareBudgetService = async ({ userId, month }) => {
       totalExpenses,
       usagePercentage,
       remainingBudget,
-      status
+      status,
     };
   });
 
-  return {monthDate:month,comparisons:compareResult};
+  return { monthDate: month, comparisons: compareResult };
 };
 
 //4.update budget
