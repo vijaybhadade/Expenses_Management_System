@@ -10,6 +10,7 @@ const allowSource = [
   "Gift",
 ];
 
+//1.Create income Service
 const createIncomeServices = async ({
   userId,
   amount,
@@ -57,6 +58,8 @@ const createIncomeServices = async ({
   }
 };
 
+
+//2.getAllincomeService
 const getIncomeServices = async ({ userId, page, limit }) => {
   const skip = (page - 1) * limit;
 
@@ -91,6 +94,7 @@ const getIncomeByIdServices = async ({ userId, incomeId }) => {
   return income;
 };
 
+//3.update income service
 const updateIncomeServices = async ({
   userId,
   incomeId,
@@ -183,6 +187,7 @@ const updateIncomeServices = async ({
   return updatedIncome;
 };
 
+//4.Delete income Service
 const deleteIncomeServices = async ({ userId, incomeId }) => {
   if (!incomeId) {
     const error = new Error("Please enter incomeId values!");

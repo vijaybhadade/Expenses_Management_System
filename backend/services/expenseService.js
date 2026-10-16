@@ -1,8 +1,7 @@
 const { ExpenseModel } = require("../models/Expense");
 const mongoose = require("mongoose");
 
-
-//call function 
+//call function
 const buildExpenseMatch = ({ userId, from, to }) => {
   const match = {
     userId: new mongoose.Types.ObjectId(userId),
@@ -24,15 +23,16 @@ const buildExpenseMatch = ({ userId, from, to }) => {
   return match;
 };
 
-
 //CreateExpenses
 const createExpenseService = async ({
   amount,
   category,
   description,
   userId,
+  date,
 }) => {
   const num = Number(amount); //number validation
+
   if (Number.isNaN(num) || num <= 0) {
     const error = new Error(
       "Amount must be a positive number and category must not be empty.",
@@ -47,11 +47,20 @@ const createExpenseService = async ({
     error.statusCode = 400;
     throw error;
   }
+  let dateParse = date ? new Date(date) : new Date();
+
+  if (isNaN(dateParse.getTime())) {
+    const error = new Error("Invalide format!");
+    error.statusCode = 400;
+    throw error;
+  }
+
   try {
     const createdExpense = await ExpenseModel.create({
       amount,
       category,
       description,
+      date: dateParse,
       userId,
     });
 
@@ -99,7 +108,7 @@ const getExpenseByIdService = async ({ expenseId, userId }) => {
 };
 
 //Calculate tatalSpend and totalExpenses
-const getExpenseStatsByService = async ({ userId,from,to }) => {
+const getExpenseStatsByService = async ({ userId, from, to }) => {
   const result = await ExpenseModel.aggregate([
     {
       $match: buildExpenseMatch({ userId, from, to }),
@@ -117,10 +126,10 @@ const getExpenseStatsByService = async ({ userId,from,to }) => {
 };
 
 //get category-wise statistic
-const getCategoryStatsByServices = async ({ userId,from,to }) => {
+const getCategoryStatsByServices = async ({ userId, from, to }) => {
   const result = await ExpenseModel.aggregate([
     {
-      $match:  buildExpenseMatch({ userId, from, to }),
+      $match: buildExpenseMatch({ userId, from, to }),
     },
     {
       $group: {
@@ -133,13 +142,11 @@ const getCategoryStatsByServices = async ({ userId,from,to }) => {
   return result;
 };
 
-
-
 //get Recently-expenses by sort date
-const getRecentExpensesByService = async ({ userId,from,to }) => {
+const getRecentExpensesByService = async ({ userId, from, to }) => {
   const result = await ExpenseModel.aggregate([
     {
-      $match: buildExpenseMatch({ userId, from, to })
+      $match: buildExpenseMatch({ userId, from, to }),
     },
     {
       $sort: { date: -1 },
@@ -223,5 +230,5 @@ module.exports = {
   getUpdatedExpenseByIdService,
   getDeletedExpenseByIdService,
   getCategoryStatsByServices,
-  getRecentExpensesByService
+  getRecentExpensesByService,
 };

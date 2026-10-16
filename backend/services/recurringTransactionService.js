@@ -1,5 +1,8 @@
 const { RecurringModel } = require("../models/RecurringTransaction");
 const mongoose = require("mongoose");
+
+
+
 // 1. Create RecurringTransaction
 const createRecurringTransactionService = async ({
   userId,
@@ -186,7 +189,6 @@ const getRecurringTransactionByIdService = async ({ userId, id }) => {
   return result;
 };
 
-
 // 4. Update RecurringTransaction By Id
 const updateRecurringTransactionService = async ({
   amount,
@@ -201,14 +203,12 @@ const updateRecurringTransactionService = async ({
   userId,
   id,
 }) => {
- 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const error = new Error("Invalid ID format!");
     error.statusCode = 400;
     throw error;
   }
 
- 
   const existingRecord = await RecurringModel.findOne({ _id: id, userId });
   if (!existingRecord) {
     const error = new Error("Recurring transaction not found!");
@@ -216,7 +216,6 @@ const updateRecurringTransactionService = async ({
     throw error;
   }
 
-  
   const updatedFields = {};
 
   if (amount !== undefined) {
@@ -319,14 +318,12 @@ const updateRecurringTransactionService = async ({
     updatedFields.isActive = isActive;
   }
 
-  
   if (Object.keys(updatedFields).length === 0) {
     const error = new Error("Please provide at least one field to update!");
     error.statusCode = 400;
     throw error;
   }
 
-  
   const effectiveType =
     updatedFields.type !== undefined ? updatedFields.type : existingRecord.type;
   const effectiveCategory =
@@ -366,13 +363,15 @@ const updateRecurringTransactionService = async ({
     throw error;
   }
 
-  if (effectiveType === "expense" && !allowExpense.includes(effectiveCategory)) {
+  if (
+    effectiveType === "expense" &&
+    !allowExpense.includes(effectiveCategory)
+  ) {
     const error = new Error("Please enter valid values into category!");
     error.statusCode = 400;
     throw error;
   }
 
-  
   const effectiveStartDate =
     updatedFields.startDate !== undefined
       ? updatedFields.startDate
@@ -407,7 +406,6 @@ const updateRecurringTransactionService = async ({
     }
   }
 
-  
   const getUpdated = await RecurringModel.findOneAndUpdate(
     { _id: id, userId },
     {
@@ -420,7 +418,9 @@ const updateRecurringTransactionService = async ({
   );
 
   if (!getUpdated) {
-    const error = new Error("Recurring transaction not found or could not be updated!");
+    const error = new Error(
+      "Recurring transaction not found or could not be updated!",
+    );
     error.statusCode = 404;
     throw error;
   }
@@ -429,24 +429,28 @@ const updateRecurringTransactionService = async ({
 };
 
 // 5. Delete RecurringTransaction
-const deleteRecurringTransactionService = async ({ userId,id }) => {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+const deleteRecurringTransactionService = async ({ userId, id }) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     const error = new Error("Invalid ID format!");
     error.statusCode = 400;
     throw error;
   }
 
- 
   const existingRecord = await RecurringModel.findOne({ _id: id, userId });
   if (!existingRecord) {
     const error = new Error("Recurring transaction not found!");
     error.statusCode = 404;
     throw error;
   }
-  
-  const deletedRecord=await RecurringModel.findOneAndDelete({_id:id,userId});
+
+  const deletedRecord = await RecurringModel.findOneAndDelete({
+    _id: id,
+    userId,
+  });
   return deletedRecord;
 };
+
+
 
 module.exports = {
   createRecurringTransactionService,

@@ -68,6 +68,10 @@ const recurringTransactionSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isMonthEnd:{
+      type:Boolean,
+      default:false,
+    },
   },
   {
     timestamps: true,

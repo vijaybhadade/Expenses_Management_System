@@ -7,6 +7,13 @@ const incomeSchema = new mongoose.Schema(
       ref: "User",
       required:true
     },
+     recurringRuleId:{
+       type:mongoose.Schema.Types.ObjectId,
+       ref:"RecurringTransaction"
+     },
+     scheduleOccuredDate:{
+      type: Date,
+     },
     amount: {
       type: Number,
       min: 1,
@@ -36,6 +43,19 @@ const incomeSchema = new mongoose.Schema(
   {
     timestamps: true,
   },
+);
+//this is  unique complex index 
+incomeSchema.index({
+  recurringRuleId:1,
+  scheduleOccuredDate:1
+},
+{
+  unique:true,
+  partialFilterExpression:{
+    recurringRuleId:{$type:"objectId"},
+    scheduleOccuredDate:{$type:Date}
+  }
+}
 );
 
 const IncomeModel=mongoose.model("Income",incomeSchema);
