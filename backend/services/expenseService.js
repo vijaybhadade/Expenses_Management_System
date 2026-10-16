@@ -29,6 +29,8 @@ const createExpenseService = async ({
   category,
   description,
   userId,
+  recurringRuleId,
+  scheduledOccurrenceDate,
   date,
 }) => {
   const num = Number(amount); //number validation
@@ -62,6 +64,8 @@ const createExpenseService = async ({
       description,
       date: dateParse,
       userId,
+      recurringRuleId,
+      scheduledOccurrenceDate,
     });
 
     return createdExpense;

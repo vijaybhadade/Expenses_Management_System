@@ -11,7 +11,7 @@ const incomeSchema = new mongoose.Schema(
        type:mongoose.Schema.Types.ObjectId,
        ref:"RecurringTransaction"
      },
-     scheduleOccuredDate:{
+     scheduledOccurrenceDate:{
       type: Date,
      },
     amount: {
@@ -47,14 +47,14 @@ const incomeSchema = new mongoose.Schema(
 //this is  unique complex index 
 incomeSchema.index({
   recurringRuleId:1,
-  scheduleOccuredDate:1
+ scheduledOccurrenceDate:1
 },
 {
   unique:true,
-  partialFilterExpression:{
-    recurringRuleId:{$type:"objectId"},
-    scheduleOccuredDate:{$type:Date}
-  }
+  partialFilterExpression: {
+  recurringRuleId: { $type: "objectId" },
+  scheduledOccurrenceDate: { $type: "date" }
+}
 }
 );
 

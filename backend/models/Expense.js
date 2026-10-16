@@ -9,7 +9,7 @@ const expenseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "RecurringTransaction",
   },
-  scheduleOccuredDate: {
+  scheduledOccurrenceDate: {
     type: Date,
   },
   amount: {
@@ -50,13 +50,13 @@ const expenseSchema = new mongoose.Schema({
 expenseSchema.index(
   {
     recurringRuleId: 1,
-    scheduleOccuredDate: 1,
+    scheduledOccurrenceDate: 1,
   },
   {
     unique: true,
     partialFilterExpression: {
-      recurringRuleId: { $type: objectId },
-      scheduleOccuredDate: { $type: Date },
+      recurringRuleId: { $type: "objectId" },
+      scheduledOccurrenceDate: { $type: "date" },
     },
   },
 );

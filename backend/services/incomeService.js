@@ -17,6 +17,8 @@ const createIncomeServices = async ({
   source,
   description,
   date,
+  recurringRuleId,
+  scheduledOccurrenceDate,
 }) => {
   const num = Number(amount);
 
@@ -48,6 +50,8 @@ const createIncomeServices = async ({
       source,
       description,
       date: dateParse,
+      recurringRuleId,
+      scheduledOccurrenceDate,
     });
     return income;
   } catch (error) {
@@ -57,7 +61,6 @@ const createIncomeServices = async ({
     throw error;
   }
 };
-
 
 //2.getAllincomeService
 const getIncomeServices = async ({ userId, page, limit }) => {
