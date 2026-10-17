@@ -14,6 +14,7 @@ const incomeRoutes=require("./routes/incomeRoutes");
 const transactionRoutes=require("./routes/transactionRoutes");
 const recurringRoutes=require("./routes/recurringTransactionRoutes");
 const {errorHandle}=require("./middileware/errorHandler");
+const {startRecurringScheduler}=require("./services/recurringTransactionScheduler");
 
 const PORT=process.env.PORT;
 
@@ -33,7 +34,7 @@ app.use(errorHandle);
 const executeServer=async()=>{
    try{
     await database();
-
+    startRecurringScheduler();
    app.listen(PORT,()=>{
         console.log(`Server is running on ${PORT} port`);
     });

@@ -9,7 +9,7 @@ const recurringTransactionSchema = new mongoose.Schema(
     },
     amount: {
       type: Number,
-      min: [0.01,"Amount values must be greater than zer"],
+      min: [0.01, "Amount values must be greater than zer"],
       required: [true, "Please enter amount!"],
     },
     type: {
@@ -20,12 +20,6 @@ const recurringTransactionSchema = new mongoose.Schema(
     category: {
       type: String,
       enum: [
-        "Salary",
-        "Freelance",
-        "Business",
-        "Investment",
-        "Scholarship",
-        "Gift",
         "Food & Dining",
         "Groceries",
         "Transportation",
@@ -41,7 +35,29 @@ const recurringTransactionSchema = new mongoose.Schema(
         "Insurance",
         "Family & Gifts",
       ],
-      required: [true, "Please enter a valid category value"],
+      required: [
+        function () {
+          return this.type === "expense";
+        },
+        "Please enter a valid category value",
+      ],
+    },
+    source: {
+      type: String,
+      enum: [
+        "Salary",
+        "Freelance",
+        "Business",
+        "Investment",
+        "Scholarship",
+        "Gift",
+      ],
+      required: [
+        function () {
+          return this.type === "income";
+        },
+        "Please enter a valid source value",
+      ],
     },
     description: {
       type: String,
@@ -68,9 +84,9 @@ const recurringTransactionSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    isMonthEnd:{
-      type:Boolean,
-      default:false,
+    isMonthEnd: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -17,7 +17,7 @@ const getDueRecurringTransactionService = async (recurringRuleId) => {
     query._id = recurringRuleId;
   }
 
-  const recurring = await RecurringModel.find(query);
+  const recurring = await RecurringModel.find(query).sort({ _id: 1 });
 
   return recurring;
 };
@@ -54,99 +54,112 @@ const calculateNextDueDate = (currentDate, frequency, isMonthEnd) => {
 const processRecurringTransactionService = async (recurringRuleId) => {
   const recurringRules =
     await getDueRecurringTransactionService(recurringRuleId);
+  console.log("Test recurring rule ID:", recurringRuleId);
+  console.log("Due recurring rules found:", recurringRules.length);
   const currentDate = new Date();
 
   for (let recurring of recurringRules) {
-    let currentDueDate = new Date(recurring.nextDueDate);
+    try {
+      let currentDueDate = new Date(recurring.nextDueDate);
 
-    while (currentDueDate.getTime() <= currentDate.getTime()) {
-      // End-date validation check
-      if (
-        recurring.endDate &&
-        currentDueDate.getTime() > new Date(recurring.endDate).getTime()
-      ) {
-        await RecurringModel.findByIdAndUpdate(recurring._id, {
-          $set: { isActive: false },
-        });
-        break;
-      }
-
-      // Create the transaction with duplicate verification
-      try {
-        if (recurring.type === "expense") {
-          await createExpenseService({
-            userId: recurring.userId,
-            amount: recurring.amount,
-            category: recurring.category,
-            date: new Date(currentDueDate),
-            recurringRuleId: recurring._id,
-            scheduledOccurrenceDate: new Date(currentDueDate),
+      while (currentDueDate.getTime() <= currentDate.getTime()) {
+        // End-date validation check
+        if (
+          recurring.endDate &&
+          currentDueDate.getTime() > new Date(recurring.endDate).getTime()
+        ) {
+          await RecurringModel.findByIdAndUpdate(recurring._id, {
+            $set: { isActive: false },
           });
-        } else if (recurring.type === "income") {
-          await createIncomeServices({
-            userId: recurring.userId,
-            amount: recurring.amount,
-            source: recurring.source,
-            date: new Date(currentDueDate),
-            recurringRuleId: recurring._id,
-            scheduledOccurrenceDate: new Date(currentDueDate),
-          });
-        } else {
-          throw new Error(
-            `Unsupported recurring transaction type: ${recurring.type}`,
-          );
+          break;
         }
-      } catch (error) {
-        if (error.code === 11000) {
-          let existingTransaction = null;
 
+        // Create the transaction with duplicate verification
+        try {
           if (recurring.type === "expense") {
-            existingTransaction = await ExpenseModel.findOne({
+            await createExpenseService({
+              userId: recurring.userId,
+              amount: recurring.amount,
+              category: recurring.category,
+              date: new Date(currentDueDate),
               recurringRuleId: recurring._id,
-              scheduledOccurrenceDate: currentDueDate,
+              scheduledOccurrenceDate: new Date(currentDueDate),
             });
           } else if (recurring.type === "income") {
-            existingTransaction = await IncomeModel.findOne({
+            console.log("DEBUG recurring source:", recurring.source);
+            console.log("DEBUG source type:", typeof recurring.source);
+            await createIncomeServices({
+              userId: recurring.userId,
+              amount: recurring.amount,
+              source: recurring.source,
+              date: new Date(currentDueDate),
               recurringRuleId: recurring._id,
-              scheduledOccurrenceDate: currentDueDate,
+              scheduledOccurrenceDate: new Date(currentDueDate),
             });
+          } else {
+            throw new Error(
+              `Unsupported recurring transaction type: ${recurring.type}`,
+            );
           }
+        } catch (error) {
+          if (error.code === 11000) {
+            let existingTransaction = null;
 
-          // If duplicate error occurred but the record isn't actually there, rethrow
-          if (!existingTransaction) {
+            if (recurring.type === "expense") {
+              existingTransaction = await ExpenseModel.findOne({
+                recurringRuleId: recurring._id,
+                scheduledOccurrenceDate: currentDueDate,
+              });
+            } else if (recurring.type === "income") {
+              existingTransaction = await IncomeModel.findOne({
+                recurringRuleId: recurring._id,
+                scheduledOccurrenceDate: currentDueDate,
+              });
+              console.log("Recurring source:", recurring.source);
+              console.log("Recurring source type:", typeof recurring.source);
+            }
+
+            // If duplicate error occurred but the record isn't actually there, rethrow
+            if (!existingTransaction) {
+              throw error;
+            }
+            // If it exists, we treat it as successfully handled and proceed
+          } else {
+            // Rethrow any other unexpected errors
             throw error;
           }
-          // If it exists, we treat it as successfully handled and proceed
-        } else {
-          // Rethrow any other unexpected errors
-          throw error;
         }
-      }
 
-      // Calculate the next due date
-      const nextDueDate = calculateNextDueDate(
-        currentDueDate,
-        recurring.frequency,
-        recurring.isMonthEnd,
+        // Calculate the next due date
+        const nextDueDate = calculateNextDueDate(
+          currentDueDate,
+          recurring.frequency,
+          recurring.isMonthEnd,
+        );
+
+        let updateData = { nextDueDate: nextDueDate };
+        if (
+          recurring.endDate &&
+          nextDueDate.getTime() > new Date(recurring.endDate).getTime()
+        ) {
+          updateData.isActive = false;
+        }
+
+        await RecurringModel.findByIdAndUpdate(recurring._id, {
+          $set: updateData,
+        });
+
+        if (updateData.isActive === false) {
+          break;
+        }
+
+        currentDueDate = nextDueDate;
+      }
+    } catch (error) {
+      console.error(
+        `Failed to process recurring rule ${recurring._id}:`,
+        error.message,
       );
-
-      let updateData = { nextDueDate: nextDueDate };
-      if (
-        recurring.endDate &&
-        nextDueDate.getTime() > new Date(recurring.endDate).getTime()
-      ) {
-        updateData.isActive = false;
-      }
-
-      await RecurringModel.findByIdAndUpdate(recurring._id, {
-        $set: updateData,
-      });
-
-      if (updateData.isActive === false) {
-        break;
-      }
-
-      currentDueDate = nextDueDate;
     }
   }
 };

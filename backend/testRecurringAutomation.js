@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const mongoose = require("mongoose");
@@ -11,19 +12,22 @@ const runTest = async () => {
   try {
     await database();
 
-    const recurringRuleId = "PASTE_TEST_RECURRING_RULE_ID_HERE";
+    const recurringRuleId = "6ad33a4d91a3b0ee49552f3d";
 
     if (!mongoose.isValidObjectId(recurringRuleId)) {
-      throw new Error("Please enter a valid recurring rule ID");
+      throw new Error("Invalid recurring rule ID");
     }
 
+   
+    
+
     await processRecurringTransactionService(
-      new mongoose.Types.ObjectId(recurringRuleId),
+      new mongoose.Types.ObjectId(recurringRuleId)
     );
 
-    console.log("Targeted recurring automation test completed.");
+    console.log("Recurring income automation test completed.");
   } catch (error) {
-    console.error("Automation test failed:", error.message);
+    console.error("Test failed:", error.message);
   } finally {
     await mongoose.disconnect();
   }
