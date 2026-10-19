@@ -1,9 +1,9 @@
-import SideBar from "./components/sideBar";
+import Layout from "./Layout";
 
 function App() {
     return (
         <>
-            <SideBar />
+            <Layout />
 
         </>
     );
