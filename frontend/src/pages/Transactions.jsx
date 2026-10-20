@@ -128,6 +128,10 @@ const Transactions = () => {
             Date Range
           </button>
         </div>
+        {/* transactions records details */}
+        <div className="main">
+
+        </div>
       </div>
     </>
   );
