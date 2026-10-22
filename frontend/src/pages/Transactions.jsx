@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import {
   MoveUp,
   Star,
   Wallet,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronDown
 } from "lucide-react";
 
 const colorClasses = {
@@ -24,13 +26,21 @@ const Transactions = () => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
 
+  // Date range states 
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [selectedDateRange, setSelectedDateRange] = useState("All Time");
+
+  // Custom range states
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const [expenseDetails, setExpenseDetails] = useState([
     {
       id: "200",
       date: "28 Oct 2026",
       category: "Food & Dining",
       description: "Groceries",
-      amount: "₹1,250",
+      amount: 1250,
       action: "..."
     },
     {
@@ -38,7 +48,7 @@ const Transactions = () => {
       date: "27 Oct 2026",
       category: "Groceries",
       description: "Monthly Groceries",
-      amount: "₹2,350",
+      amount: 2350,
       action: "..."
     },
     {
@@ -46,7 +56,7 @@ const Transactions = () => {
       date: "26 Oct 2026",
       category: "Utilities",
       description: "Electricity bill",
-      amount: "₹1,800",
+      amount: 1800,
       action: "..."
     },
   ]);
@@ -60,6 +70,8 @@ const Transactions = () => {
   const handleSubmitExpense = (e) => {
     e.preventDefault();
 
+    if (!date) return;
+
     // Format date from YYYY-MM-DD to DD MMM YYYY
     const formattedDate = new Date(date).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -67,7 +79,7 @@ const Transactions = () => {
       year: "numeric",
     });
 
-    //validate number 
+    // Validate number 
     if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
       return;
     }
@@ -77,7 +89,7 @@ const Transactions = () => {
       date: formattedDate,
       category: formCategory,
       description: description || "No description",
-      amount: `₹${Number(amount).toLocaleString("en-IN")}`,
+      amount: Number(amount),
       action: "..."
     };
 
@@ -98,11 +110,59 @@ const Transactions = () => {
     setDescription("");
   };
 
+  // Calculate total Expense
+  const totalExpense = expenseDetails.reduce(
+    (total, item) => total + item.amount,
+    0
+  );
+
+  // Calculate this month
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  const thisMonthExpense = expenseDetails.filter((item) => {
+    const expenseDate = new Date(item.date);
+    return (
+      expenseDate.getMonth() === currentMonth &&
+      expenseDate.getFullYear() === currentYear
+    );
+  });
+
+  const monthExpense = thisMonthExpense.reduce(
+    (data, item) => data + item.amount,
+    0
+  );
+
+  // Calculate largest expense (safely handles empty state)
+  const largestExpense = expenseDetails.length > 0
+    ? expenseDetails.reduce(
+        (largest, item) => (item.amount > largest.amount ? item : largest),
+        expenseDetails[0]
+      )
+    : { amount: 0, category: "N/A" };
+
+  // Count expense category occurrences
+  const categoryCount = expenseDetails.reduce((count, item) => {
+    count[item.category] = (count[item.category] || 0) + 1;
+    return count;
+  }, {});
+
+  // Find most used category safely
+  const mostUsedCategory = Object.keys(categoryCount).length > 0
+    ? Object.keys(categoryCount).reduce(
+        (mostUsed, category) =>
+          categoryCount[category] > categoryCount[mostUsed]
+            ? category
+            : mostUsed,
+        Object.keys(categoryCount)[0]
+      )
+    : "N/A";
+
   const summaryCards = [
     {
       id: "100",
       title: "Total Expenses",
-      amount: "₹14,750",
+      amount: totalExpense,
       icon: Wallet,
       color: "red",
       percentage: "6.7%",
@@ -111,8 +171,8 @@ const Transactions = () => {
     },
     {
       id: "101",
-      title: "This month",
-      amount: "₹12,320",
+      title: "This Month",
+      amount: monthExpense,
       icon: MoveUp,
       color: "blue",
       percentage: "8.3%",
@@ -122,23 +182,72 @@ const Transactions = () => {
     {
       id: "102",
       title: "Largest Expense",
-      amount: "₹3,980",
+      amount: largestExpense.amount,
       icon: Star,
       color: "yellow",
-      subject: "House & rent",
+      subject: largestExpense.category,
     },
     {
       id: "103",
-      title: "Most used category",
-      subject: "Food & Dining",
+      title: "Most Used Category",
+      subject: mostUsedCategory,
       icon: FileSpreadsheet,
       color: "green",
-      percentage: "34% total expense"
+      percentage: `${expenseDetails.length > 0 ? Math.round(((categoryCount[mostUsedCategory] || 0) / expenseDetails.length) * 100) : 0}% of transactions`
     },
   ];
 
+  // Filter by date range
+  const filterDatarange = expenseDetails.filter((item) => {
+    const now = new Date();
+    const expenseDate = new Date(item.date);
+
+    if (selectedDateRange === "All Time") {
+      return true;
+    }
+
+    if (selectedDateRange === "This Month") {
+      return (
+        expenseDate.getMonth() === now.getMonth() &&
+        expenseDate.getFullYear() === now.getFullYear()
+      );
+    }
+
+    if (selectedDateRange === "Last Month") {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return (
+        expenseDate.getMonth() === lastMonth.getMonth() &&
+        expenseDate.getFullYear() === lastMonth.getFullYear()
+      );
+    }
+
+    if (selectedDateRange === "Last 30 Days") {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 29);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+
+      return expenseDate >= start && expenseDate <= end;
+    }
+
+    if (selectedDateRange === "Custom Range") {
+      if (!startDate || !endDate || startDate > endDate) {
+        return true;
+      }
+
+      const start = new Date(`${startDate}T00:00:00`);
+      const end = new Date(`${endDate}T23:59:59.999`);
+
+      return expenseDate >= start && expenseDate <= end;
+    }
+
+    return true;
+  });
+
   // Filter transactions based on category and search
-  const filteredExpenses = expenseDetails.filter((item) => {
+  const filteredExpenses = filterDatarange.filter((item) => {
     const matchedSearch = [item.date, item.category, item.description, item.amount]
       .some((val) => String(val).toLowerCase().includes(searchText.toLowerCase()));
     const matchedCategory = selectedCategory === "ALL" || item.category === selectedCategory;
@@ -170,9 +279,11 @@ const Transactions = () => {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  {item.amount ? (
-                    <span className="text-2xl font-bold text-slate-900">
-                      {item.amount}
+                  {item.amount !== undefined ? (
+                    <span className="text-lg font-semibold text-slate-900">
+                      {typeof item.amount === "number"
+                        ? `₹${item.amount.toLocaleString("en-IN")}`
+                        : item.amount}
                     </span>
                   ) : (
                     <span className="text-lg font-semibold text-slate-900">
@@ -203,7 +314,7 @@ const Transactions = () => {
           className="w-full rounded-lg border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 md:max-w-sm"
         />
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -213,19 +324,108 @@ const Transactions = () => {
             <option value="Food & Dining">Food & Dining</option>
             <option value="Groceries">Groceries</option>
             <option value="Transportation">Transportation</option>
-            <option value="Housing & Rent">Housing &amp; Rent</option>
+            <option value="Housing & Rent">Housing & Rent</option>
             <option value="Utilities">Utilities</option>
           </select>
 
-          <button className="rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-50 bg-white cursor-pointer font-medium">
-            Date Range
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowDateRange(!showDateRange)}
+              className="rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-50 bg-white cursor-pointer font-medium text-slate-700 flex items-center gap-2"
+            >
+              <span>{selectedDateRange}</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            {showDateRange && (
+              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg z-10 py-1">
+                {["All Time", "This Month", "Last Month", "Last 30 Days", "Custom Range"].map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => {
+                      setSelectedDateRange(range);
+                      if (range !== "Custom Range") {
+                        setShowDateRange(false);
+                      }
+                    }}
+                    className={`block w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors ${
+                      selectedDateRange === range ? "font-semibold text-blue-600 bg-blue-50" : "text-slate-700"
+                    }`}
+                  >
+                    {range}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom date range modal/card */}
+            {selectedDateRange === "Custom Range" && showDateRange && (
+              <div className="absolute right-0 top-full mt-2 z-20 w-72 rounded-lg border border-slate-200 bg-white p-4 shadow-lg">
+                <h3 className="mb-3 font-semibold text-slate-800 text-sm">
+                  Select Date Range
+                </h3>
+
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label
+                      htmlFor="startDate"
+                      className="mb-1 block text-xs text-slate-600"
+                    >
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      id="startDate"
+                      value={startDate}
+                      max={endDate || undefined}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="endDate"
+                      className="mb-1 block text-xs text-slate-600"
+                    >
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      id="endDate"
+                      value={endDate}
+                      min={startDate || undefined}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowDateRange(false)}
+                      className="w-1/2 rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!startDate || !endDate || startDate > endDate}
+                      onClick={() => setShowDateRange(false)}
+                      className="w-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Content Area (List + Form) */}
       <div className="main flex flex-col lg:flex-row gap-6 p-6">
-
         {/* Expenses List */}
         <div className="left w-full lg:w-3/5 bg-white text-slate-800 rounded-xl shadow-sm border border-slate-100 p-5 overflow-x-auto">
           <h2 className="text-xl font-bold text-slate-900 mb-4">Expenses History</h2>
@@ -241,18 +441,26 @@ const Transactions = () => {
 
           {/* Table Rows */}
           <div className="flex flex-col gap-3">
-            {filteredExpenses.map((item, index) => (
-              <div
-                key={item.id || index}
-                className="grid grid-cols-5 items-center text-sm py-2 border-b border-slate-100 last:border-none"
-              >
-                <span className="text-slate-600">{item.date}</span>
-                <span className="font-medium text-slate-900">{item.description}</span>
-                <span className="text-slate-600">{item.category}</span>
-                <span className="font-semibold text-slate-900">{item.amount}</span>
-                <span className="text-right cursor-pointer text-slate-400 hover:text-slate-600 font-bold">{item.action}</span>
-              </div>
-            ))}
+            {filteredExpenses.length === 0 ? (
+              <p className="text-center text-slate-400 py-8 text-sm">No expenses found.</p>
+            ) : (
+              filteredExpenses.map((item, index) => (
+                <div
+                  key={item.id || index}
+                  className="grid grid-cols-5 items-center text-sm py-2 border-b border-slate-100 last:border-none"
+                >
+                  <span className="text-slate-600">{item.date}</span>
+                  <span className="font-medium text-slate-900">{item.description}</span>
+                  <span className="text-slate-600">{item.category}</span>
+                  <span className="font-semibold text-slate-900">
+                    ₹{item.amount.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-right cursor-pointer text-slate-400 hover:text-slate-600 font-bold">
+                    {item.action}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -272,7 +480,8 @@ const Transactions = () => {
               <input
                 type="number"
                 id="amount"
-                min="0.01"
+                min="1.00"
+                step="any"
                 name="amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -294,10 +503,10 @@ const Transactions = () => {
                 className="h-10 px-3 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
               >
                 <option value="" disabled>Select a category</option>
-                <option value="Food & Dining">Food &amp; Dining</option>
+                <option value="Food & Dining">Food & Dining</option>
                 <option value="Groceries">Groceries</option>
                 <option value="Transportation">Transportation</option>
-                <option value="Housing & Rent">Housing &amp; Rent</option>
+                <option value="Housing & Rent">Housing & Rent</option>
                 <option value="Utilities">Utilities</option>
                 <option value="Healthcare">Healthcare</option>
                 <option value="Shopping">Shopping</option>
@@ -305,9 +514,9 @@ const Transactions = () => {
                 <option value="Education">Education</option>
                 <option value="Personal Care">Personal Care</option>
                 <option value="Travel">Travel</option>
-                <option value="EMI & Loans">EMI &amp; Loans</option>
+                <option value="EMI & Loans">EMI & Loans</option>
                 <option value="Insurance">Insurance</option>
-                <option value="Family & Gifts">Family &amp; Gifts</option>
+                <option value="Family & Gifts">Family & Gifts</option>
               </select>
             </div>
 
@@ -334,7 +543,7 @@ const Transactions = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Enter description..."
-                className="p-3 rounded-md border border-slate-300 h-24 focus:outline-none focus:border-blue-500"
+                className="p-3 rounded-md border border-slate-300 h-24 focus:outline-none focus:border-blue-500 resize-none"
               ></textarea>
             </div>
           </div>

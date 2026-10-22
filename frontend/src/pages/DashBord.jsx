@@ -1,6 +1,7 @@
 import IncomeExpenseChart from "../components/charts/IncomeExpenseChart";
 import ExpenseBreakdownChart from "../components/charts/ExpenseBreakDown";
 import { CalendarDays, ChevronDown, BellRing, Wallet, MoveDown, MoveUp, PiggyBank } from "lucide-react";
+
 const summaryCards = [
     {
         title: "Total Balance",
