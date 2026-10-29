@@ -1,5 +1,5 @@
 import   SideBar  from "./components/sideBar";
-import   Transactions  from "./pages/Transactions";
+import   Dashboard  from "./pages/DashBord";
 import { Outlet } from "react-router-dom";
 const Layout = () => {
   return (
@@ -7,7 +7,7 @@ const Layout = () => {
       <SideBar />
       <main className="min-w-0 flex-1 bg-slate-200 p-6">
         <Outlet/>
-        <Transactions/>
+        <Dashboard/>
       </main>
     </div>
   )

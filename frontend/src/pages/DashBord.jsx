@@ -58,7 +58,7 @@ const DashBord = () => {
                         <BellRing size={20} />
                     </div>
                     <div className="logo flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-400">
-                        V
+                        S
                     </div>
                 </div>
             </nav>
